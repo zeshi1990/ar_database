@@ -14,6 +14,7 @@ def init_db():
     This function only runs once, just to initialize the database
     :return: None
     """
+    print("Initialize database if not built before.")
     DB_NAME = 'ar_data'
 
     TABLES = {}
@@ -83,11 +84,14 @@ def init_db():
     cnx.close()
 
     # Popoluate sites into the sites table
-    site_info = pd.read_csv("data/site_node_info.csv", header=0, sep=",")
+    print("Starting building site table and populating data")
+    site_info = pd.read_csv("server_data/site_node_info.csv", header=0, sep=",")
+    site_names_all = site_info["site_id"].as_matrix()
     site_names = np.unique(site_info["site_id"].as_matrix())
     sites = ()
     for site_name in site_names:
-        temp_site = (site_name, )
+        num_nodes = len(site_names_all[site_names_all == site_name])
+        temp_site = (site_name, num_nodes)
         sites = sites + (temp_site,)
 
     cnx = mysql.connector.connect(user='root', password='root', database="ar_data")
@@ -95,8 +99,8 @@ def init_db():
     try:
         cursor.execute("ALTER TABLE sites AUTO_INCREMENT = 1")
         add_site = ("INSERT INTO sites "
-                    "(site_name) "
-                    "VALUES (%s)")
+                    "(site_name, num_of_nodes) "
+                    "VALUES (%s, %s)")
         cursor.executemany(add_site, sites)
         cnx.commit()
     except mysql.connector.Error as err:
@@ -318,7 +322,14 @@ def populate_data_server(site_name):
     :return:                    None
     """
     print("Start populating server data into mysql at "+site_name)
-    files = os.listdir("server_data/"+site_name)
+    try:
+        files = os.listdir("server_data/"+site_name)
+    except OSError as err:
+        print("The site_name: " + site_name + " is not a valid data folder name!")
+        return
+    if len(files) == 0:
+        print("The folder for this site_name: " + site_name + " is an empty folder!")
+        return
     if ".DS_Store" in files:
         files.remove(".DS_Store")
     node_query = ("SELECT site_id, node_id, put_time, server_last_update FROM motes WHERE mac = %s")
@@ -511,7 +522,14 @@ def populate_data_sd(site_name):
     :return:                    None
     """
     print("Start populating SD card data into mysql at "+site_name)
-    files = os.listdir("sd_data/"+site_name) # Need to change the folder name in real application
+    try:
+        files = os.listdir("sd_data/"+site_name) # Need to change the folder name in real application
+    except OSError as err:
+        print("The site_name: " + site_name + " is not a valid data folder name!")
+        return
+    if len(files) == 0:
+        print("The folder for this site_name: " + site_name + " is an empty folder!")
+        return
     if ".DS_Store" in files:
         files.remove(".DS_Store")
     site_id_query = ("SELECT site_id FROM sites WHERE site_name = %s")
