@@ -1,7 +1,7 @@
 __author__ = "zeshi"
 
 from mysqldb_level_0 import init_db, populate_data_server, populate_data_sd
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 
 # init_db()
 
