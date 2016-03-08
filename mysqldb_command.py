@@ -12,3 +12,8 @@ pool = Pool(processes=cpu_count())
 pool.map(populate_data_server, site_names)
 pool.close()
 pool.join()
+
+pool = Pool(processes=cpu_count())
+pool.map(populate_data_sd, site_names)
+pool.close()
+pool.join()
