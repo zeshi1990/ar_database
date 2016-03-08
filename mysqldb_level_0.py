@@ -154,7 +154,7 @@ def init_db():
         "  `node_id` int NOT NULL,"
         "  `datetime` datetime NOT NULL,"
         "  `voltage` float,"
-        "  `temperature_temprh` float,"
+        "  `temperature` float,"
         "  `relative_humidity` float,"
         "  `soil_moisture_1` float,"
         "  `soil_temperature_1` float,"
@@ -360,7 +360,7 @@ def populate_data_server(site_name):
 
         rows = cursor.fetchall()
         if cursor.rowcount == 0:
-            print("No node found to mac address: " + mac + site_name)
+            print("No node found to mac address: " + mac + "from site: " + site_name)
             continue
         max_row = rows[0]
         if len(rows) > 1:
@@ -387,16 +387,19 @@ def populate_data_server(site_name):
             new_server_last_update = new_items[1]
             try:
                 cursor.execute(update_table_motes, (new_server_last_update, site_id, node_id, mac))
-                if site_name != "caples_lk":
+                if site_name != "Caples_Lk":
                     cursor.executemany(insert_table_level_0, update_data)
                 else:
                     cursor.executemany(insert_table_level_0_caples, update_data)
                 cnx.commit()
+                print(site_name + ": " + mac + " populating finished!")
             except mysql.connector.Error as err:
                 print("Error happens when inserting data!")
+                print(update_data[0])
                 print(err)
-                print(update_data)
                 break
+        else:
+            print(site_name + ": " + mac + " already updated recently!")
     cursor.close()
     cnx.close()
 
@@ -583,11 +586,13 @@ def populate_data_sd(site_name):
                 cursor.execute(update_table_motes, (new_sd_last_update, site_id, node_id))
                 cursor.executemany(insert_table_level_0, update_data)
                 cnx.commit()
+                print(site_id + ": node_" + node_id + " sd_card data has populated!")
             except mysql.connector.Error as err:
                 print("Error happens when inserting data!")
-                print(temp_temp)
                 print(err)
                 break
+        else:
+            print(site_id + ": node_" + node_id + " has already updated recently!")
     cursor.close()
     cnx.close()
 
