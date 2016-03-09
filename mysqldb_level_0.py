@@ -40,7 +40,7 @@ def init_db():
         "  `sd_last_update` datetime,"
         "  `server_last_update` datetime,"
         "  `sd_level_1` datetime NOT NULL,"
-        "  `server_level_1 datetime` datetime NOT NULL,"
+        "  `server_level_1` datetime NOT NULL,"
         "  `ground_dist` float,"
         "  PRIMARY KEY (`site_id`,`node_id`), UNIQUE KEY `mote_id` (`mote_id`)"
         ") ENGINE=InnoDB")
@@ -178,6 +178,49 @@ def init_db():
     try:
         print("Creating table {}: ".format('level_0'), end='')
         cursor.execute(TABLE_ts)
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
+            print("already exists.")
+        else:
+            print(err.msg)
+    else:
+        print("OK")
+
+    cursor.close()
+    cnx.close()
+    
+    # Create a table called level_1, which is used to store all parsed level_0 data
+    TABLE_ts_1 = (
+        "CREATE TABLE `level_1` ("
+        "  `site_id` int NOT NULL,"
+        "  `node_id` int NOT NULL,"
+        "  `datetime` datetime NOT NULL,"
+        "  `voltage` float,"
+        "  `temperature` float,"
+        "  `relative_humidity` float,"
+        "  `soil_moisture_1` float,"
+        "  `soil_temperature_1` float,"
+        "  `soil_ec_1` float,"
+        "  `soil_moisture_2` float,"
+        "  `soil_temperature_2` float,"
+        "  `soil_ec_2` float,"
+        "  `snowdepth` float,"
+        "  `judd_temp` float,"
+        "  `solar` float,"
+        "  `maxibotics` float,"
+        "  `sd_clean` float,"
+        "  `tmp_clean` float,"
+        "  `rh_clean` float,"
+        "  `sd_card` tinyint(1),"
+        "  FOREIGN KEY (`site_id`, `node_id`) REFERENCES motes(`site_id`, `node_id`),"
+        "  PRIMARY KEY (`datetime`)"
+        ") ENGINE=InnoDB")
+
+    cnx = mysql.connector.connect(user='root', password='root', database='ar_data')
+    cursor = cnx.cursor()
+    try:
+        print("Creating table {}: ".format('level_1'), end='')
+        cursor.execute(TABLE_ts_1)
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
             print("already exists.")
@@ -586,25 +629,21 @@ def populate_data_sd(site_name):
                 cursor.execute(update_table_motes, (new_sd_last_update, site_id, node_id))
                 cursor.executemany(insert_table_level_0, update_data)
                 cnx.commit()
-                print(site_id + ": node_" + node_id + " sd_card data has populated!")
+                print(site_name + ": node_" + str(node_id) + " sd_card data has populated!")
             except mysql.connector.Error as err:
                 print("Error happens when inserting data!")
                 print(err)
                 break
         else:
-            print(site_id + ": node_" + node_id + " has already updated recently!")
+            print(site_name + ": node_" + str(node_id) + " has already updated recently!")
     cursor.close()
     cnx.close()
-
-def query_data_level0(site_name_id, node_id, starting_date, ending_date, field = None):
+    
+def site_info_check(site_name_id, node_id):
     """
-    Query level0 data from mysql database
+    Check site id and node id valid from the database
     :param site_name_id:        int or string, The site name or site id of the data
     :param node_id:             int, node id
-    :param starting_date:       date, starting date of query
-    :param ending_date:         date, ending date of query
-    :param field:               string, name of the field to be queried
-    :return:                    tuple, data rows that queried from the database
     """
     use_id = False
     if isinstance(site_name_id, int):
@@ -616,6 +655,68 @@ def query_data_level0(site_name_id, node_id, starting_date, ending_date, field =
     # Define all queries in this database
     site_id_query = ("SELECT site_id, num_of_nodes FROM sites WHERE site_name = %s")
     site_num_of_nodes_query = ("SELECT num_of_nodes FROM sites WHERE site_id = %s")
+
+    # Connect to the ar_data database
+    cnx = mysql.connector.connect(user='root', password='root', database='ar_data')
+    cursor = cnx.cursor()
+    
+    # Check if site_name is valid
+    if not use_id:
+        try:
+            cursor.execute(site_id_query, (site_name, ))
+        except mysql.connector.Error as err:
+            print(err)
+        rows = cursor.fetchall()
+        if cursor.rowcount == 0:
+            cursor.close()
+            cnx.close()
+            raise ValueError("site name does not represent a valid site.")
+
+        # Check if node_id is valid
+        site_id = rows[0][0]
+        max_num_nodes = rows[0][1]
+        if node_id > max_num_nodes or node_id <= 0:
+            cursor.close()
+            cnx.close()
+            raise ValueError("node_id does not represent a valid node in this site.")
+
+    else:
+        try:
+            cursor.execute(site_num_of_nodes_query, (site_id, ))
+        except mysql.connector.Error as err:
+            print(err)
+        rows = cursor.fetchall()
+        if cursor.rowcount == 0:
+            cursor.close()
+            cnx.close()
+            raise ValueError("site id does not represent a valid id.")
+
+        max_num_nodes = rows[0][0]
+        if node_id > max_num_nodes or node_id <= 0:
+            cursor.close()
+            cnx.close()
+            raise ValueError("node_id does not represent a valid node in this site.")
+    cursor.close()
+    cnx.close()
+    return site_id
+
+def query_data_level0(site_name_id, node_id, starting_datetime, ending_datetime, field = None):
+    """
+    Query level0 data from mysql database
+    :param site_name_id:        int or string, The site name or site id of the data
+    :param node_id:             int, node id
+    :param starting_datetime:   datetime, starting datetime of query
+    :param ending_datetime:     datetime, ending datetime of query
+    :param field:               string, name of the field to be queried
+    :return:                    tuple, data rows that queried from the database
+    """
+    # Check if site_name_id and node_id valid
+    try:
+        site_id = site_info_check(site_name_id, node_id)
+    except ValueError as err:
+        print("Could not query data from level_0 table because of wrong site name/id or node id!")
+        return None
+    
     level0_column_name_query = ("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS" +
                                 " WHERE TABLE_NAME='level_0'")
 
@@ -632,34 +733,6 @@ def query_data_level0(site_name_id, node_id, starting_date, ending_date, field =
     cnx = mysql.connector.connect(user='root', password='root', database='ar_data')
     cursor = cnx.cursor()
 
-    # Check if site_name is valid
-    if not use_id:
-        try:
-            cursor.execute(site_id_query, (site_name, ))
-        except mysql.connector.Error as err:
-            print(err)
-        rows = cursor.fetchall()
-        if cursor.rowcount == 0:
-            raise ValueError("site name does not represent a valid site.")
-
-        # Check if node_id is valid
-        site_id = rows[0][0]
-        max_num_nodes = rows[0][1]
-        if node_id > max_num_nodes or node_id <= 0:
-            raise ValueError("node_id does not represent a valid node in this site.")
-
-    else:
-        try:
-            cursor.execute(site_num_of_nodes_query, (site_id, ))
-        except mysql.connector.Error as err:
-            print(err)
-        rows = cursor.fetchall()
-        if cursor.rowcount == 0:
-            raise ValueError("site id does not represent a valid id.")
-        max_num_nodes = rows[0][0]
-        if node_id > max_num_nodes or node_id <= 0:
-            raise ValueError("node_id does not represent a valid node in this site.")
-
     # Check if fieldname is valid
     try:
         cursor.execute(level0_column_name_query)
@@ -668,11 +741,11 @@ def query_data_level0(site_name_id, node_id, starting_date, ending_date, field =
     rows = cursor.fetchall()
     rows = [item[0] for item in rows]
     if field is not None and field not in rows:
+        cursor.close()
+        cnx.close()
         raise ValueError("field is not a valid column in the table.")
 
     # Formatting start time
-    starting_datetime = datetime.combine(starting_date, datetime.min.time())
-    ending_datetime = datetime.combine(ending_date, datetime.max.time())
     try:
         cursor.execute(level0_data_query, (site_id, node_id, starting_datetime, ending_datetime))
     except mysql.connector.Error as err:

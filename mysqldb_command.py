@@ -8,12 +8,15 @@ from multiprocessing import Pool, cpu_count
 site_names = ["Alpha", "Bear_Trap", "Caples_Lk", "DollyRice", "Duncan_Pk", "Echo_Pk", "Mt_Lincoln",\
               "Onion_Ck", "Owens_Camp", "Robbs_Saddle", "Schneiders", "Talbot_Camp", "Van_Vleck"]
 
-pool = Pool(processes=cpu_count())
-pool.map(populate_data_server, site_names)
-pool.close()
-pool.join()
+#pool = Pool(processes=cpu_count())
+#pool.map(populate_data_server, site_names)
+#pool.close()
+#pool.join()
 
-pool = Pool(processes=cpu_count())
-pool.map(populate_data_sd, site_names)
-pool.close()
-pool.join()
+#pool = Pool(processes=cpu_count())
+#pool.map(populate_data_sd, site_names)
+#pool.close()
+#pool.join()
+
+populate_data_sd("Duncan_Pk")
+populate_data_sd("Robbs_Saddle")
