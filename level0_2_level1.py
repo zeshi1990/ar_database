@@ -228,7 +228,7 @@ def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt = No
                 new_server_level_1 = temp_datetime
             else:
                 new_sd_level_1 = temp_datetime
-        else level_0_data_temp_length >= 2:
+        elif level_0_data_temp_length >= 2:
             if level_1_data_temp_length == 1:
                 updated = False
                 for i in range(0, level_0_data_temp_length): 
