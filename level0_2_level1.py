@@ -159,8 +159,8 @@ def query_data_level1(site_name_id, node_id, starting_datetime, ending_datetime,
         level1_data_query = ("SELECT * FROM level_1 WHERE site_id = %s AND node_id = %s "
                              "AND datetime >= %s AND datetime <= %s")
     else:
-        query_string = "SELECT " + field + " FROM level_1 WHERE site_id = %s and node_id = %s " + 
-                       "AND datetime >= %s AND datetime <= %s"
+        query_string = ("SELECT " + field + " FROM level_1 WHERE site_id = %s and node_id = %s " + 
+                        "AND datetime >= %s AND datetime <= %s")
         level1_data_query = (query_string)
 
     # Connect to the ar_data database
