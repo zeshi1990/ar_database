@@ -1,3 +1,8 @@
+
+# coding: utf-8
+
+# In[1]:
+
 from __future__ import print_function
 __author__ = "zeshi"
 
@@ -11,7 +16,7 @@ from datetime import datetime, date, timedelta
 # Define all querie in this database
 site_id_query = ("SELECT site_id, num_of_nodes FROM sites WHERE site_name = %s")
 level1_time_query = ("SELECT sd_level_1, server_level_1 FROM motes WHERE site_id = %s AND node_id = %s")
-level0_time_query = ("SELECT sd_last_update, server_last_update FROM motes WHERE site_id = %s" 
+level0_time_query = ("SELECT sd_last_update, server_last_update FROM motes WHERE site_id = %s " 
                      "AND node_id = %s")
 level1_insert_string = ("INSERT INTO level_1 "
                         "(site_id, node_id, datetime, voltage, temperature, relative_humidity, "
@@ -22,6 +27,8 @@ level1_sd_time_update = ("UPDATE motes SET sd_level_1 = %s WHERE site_id = %s AN
 level1_server_time_update = ("UPDATE motes SET server_level_1 = %s WHERE site_id = %s AND node_id = %s")
 
 
+# In[2]:
+
 def formater(data_row):
     output = ()
     for i, item in enumerate(data_row):
@@ -29,6 +36,8 @@ def formater(data_row):
             output = output + (item, )
     return output
 
+
+# In[3]:
 
 def query_site_id(site_name, cursor):
     try:
@@ -43,6 +52,8 @@ def query_site_id(site_name, cursor):
         return None
 
 
+# In[4]:
+
 def query_time(site_id, node_id, time_query_string, cursor):
     try:
         cursor.execute(time_query_string, (site_id, node_id))
@@ -52,6 +63,8 @@ def query_time(site_id, node_id, time_query_string, cursor):
         print("The node_id is wrong!")
         return (None, None)
 
+
+# In[5]:
 
 def level0_to_level1_time(site_name, node_id):
     """
@@ -94,6 +107,8 @@ def level0_to_level1_time(site_name, node_id):
     return (site_id, starting_datetime, ending_datetime)
 
 
+# In[6]:
+
 def update_data_level1(site_name_id, node_id, row_datetime, new_row):
     """
     Update level1 data from mysql database
@@ -125,13 +140,15 @@ def update_data_level1(site_name_id, node_id, row_datetime, new_row):
     cursor = cnx.cursor()
     try:
         cursor.execute(level1_update_query, exec_data)
-        cursor.commit()
+        cnx.commit()
     except mysql.connector.Error as err:
         print("Update failed because of mysql error!")
         print(err)
     cursor.close()
     cnx.close()
 
+
+# In[7]:
 
 def query_data_level1(site_name_id, node_id, starting_datetime, ending_datetime, field = None):
     """
@@ -151,7 +168,7 @@ def query_data_level1(site_name_id, node_id, starting_datetime, ending_datetime,
         return None
     
     # Define all queries in this database
-    level1_column_name_query = ("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS" +
+    level0_column_name_query = ("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS" +
                                 " WHERE TABLE_NAME='level_1'")
 
     # Check if field is specified
@@ -159,8 +176,7 @@ def query_data_level1(site_name_id, node_id, starting_datetime, ending_datetime,
         level1_data_query = ("SELECT * FROM level_1 WHERE site_id = %s AND node_id = %s "
                              "AND datetime >= %s AND datetime <= %s")
     else:
-        query_string = ("SELECT " + field + " FROM level_1 WHERE site_id = %s and node_id = %s " + 
-                        "AND datetime >= %s AND datetime <= %s")
+        query_string = "SELECT " + field + " FROM level_1 WHERE site_id = %s and node_id = %s " + "AND datetime >= %s AND datetime <= %s"
         level1_data_query = (query_string)
 
     # Connect to the ar_data database
@@ -169,7 +185,7 @@ def query_data_level1(site_name_id, node_id, starting_datetime, ending_datetime,
 
     # Check if fieldname is valid
     try:
-        cursor.execute(level1_column_name_query)
+        cursor.execute(level0_column_name_query)
     except mysql.connector.Error as err:
         print(err)
     rows = cursor.fetchall()
@@ -192,6 +208,8 @@ def query_data_level1(site_name_id, node_id, starting_datetime, ending_datetime,
     cnx.close()
     return rows
 
+
+# In[15]:
 
 def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt = None):
     site_id, starting_datetime, ending_datetime = level0_to_level1_time(site_name, node_id) 
@@ -261,7 +279,7 @@ def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt = No
                     cursor.execute(level1_server_time_update, (new_server_level_1, site_id, node_id))
                 if new_sd_level_1 is not None:
                     cursor.execute(level1_sd_time_update, (new_sd_level_1, site_id, node_id))
-                cursor.commit()
+                cnx.commit()
             except mysql.connector.Error as err:
                 print(err)
                 print("Updating time error!")
@@ -271,7 +289,7 @@ def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt = No
     else:
         try:
             cursor.executemany(level1_insert_string, output)
-            cursor.commit()
+            cnx.commit()
             print("Level_1 data table updated from level_0 table!")
         except mysql.connector.Error as err:
             print(err)
@@ -282,10 +300,18 @@ def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt = No
                     cursor.execute(level1_server_time_update, (new_server_level_1, site_id, node_id))
                 if new_sd_level_1 is not None:
                     cursor.execute(level1_sd_time_update, (new_sd_level_1, site_id, node_id))
-                cursor.commit()
+                cnx.commit()
             except mysql.connector.Error as err:
                 print(err)
                 print("Updating time error!")
         cursor.close()
         cnx.close()
         return
+
+
+# In[17]:
+
+# Testing cell
+# for i in [1,2,3,4,5,6,7,8,11]:
+#     level0_to_level1_data_merge("Duncan_Pk", i, datetime_range_interupt=(datetime(2016, 1, 25), datetime(2016, 2, 1)))
+
