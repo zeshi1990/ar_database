@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[2]:
 
 from __future__ import print_function
 
@@ -13,7 +13,7 @@ from datetime import datetime, date
 import os
 
 
-# In[2]:
+# In[3]:
 
 # This script is for initialize the database.
 def init_db():
@@ -235,7 +235,7 @@ def init_db():
 
 # # The function below should read and parse server data files
 
-# In[3]:
+# In[4]:
 
 def parse_server_file(fn, site_id, node_id, server_last_update):
     # Read the file
@@ -357,7 +357,7 @@ def parse_server_file(fn, site_id, node_id, server_last_update):
 
 # # The function below populate data from the folder having all server data
 
-# In[4]:
+# In[5]:
 
 def populate_data_server(site_name):
     print("Start populating server data into mysql at "+site_name)
@@ -419,7 +419,7 @@ def populate_data_server(site_name):
             new_server_last_update = new_items[1]
             try:
                 cursor.execute(update_table_motes, (new_server_last_update, site_id, node_id, mac))
-                if site_name != "caples_lk":
+                if site_name != "Caples_Lk":
                     cursor.executemany(insert_table_level_0, update_data)
                 else:
                     cursor.executemany(insert_table_level_0_caples, update_data)
@@ -435,7 +435,7 @@ def populate_data_server(site_name):
 
 # # The function below should read and parse the SD card data files
 
-# In[5]:
+# In[8]:
 
 def parse_sd_file(fn, site_id, node_id, sd_last_update):
     # Read the file
@@ -544,7 +544,7 @@ def parse_sd_file(fn, site_id, node_id, sd_last_update):
         return (output, new_sd_last_update)
 
 
-# In[6]:
+# In[9]:
 
 def populate_data_sd(site_name):
     print("Start populating SD card data into mysql at "+site_name)
@@ -578,7 +578,7 @@ def populate_data_sd(site_name):
         try:
             cursor.execute(node_query, (site_id, node_id))
         except mysql.connector.Error as err:
-            print("Querying error happens when trying to query time from node id " + str(node_id) + " at site " + site_name)
+            print("Querying error happens when trying to query time from node id " +                   str(node_id) + " at site " + site_name)
             print(err)
             continue
         sd_last_update = cursor.fetchall()[0][0]
@@ -610,7 +610,7 @@ def populate_data_sd(site_name):
     cnx.close()
 
 
-# In[7]:
+# In[10]:
 
 def site_info_check(site_name_id, node_id):
     """
@@ -683,7 +683,7 @@ def site_info_check(site_name_id, node_id):
 # field: string. The name of the column name
 # ```
 
-# In[8]:
+# In[11]:
 
 def query_data_level0(site_name_id, node_id, starting_datetime, ending_datetime, field = None):
     """
@@ -710,7 +710,7 @@ def query_data_level0(site_name_id, node_id, starting_datetime, ending_datetime,
         level0_data_query = ("SELECT * FROM level_0 WHERE site_id = %s AND node_id = %s "
                              "AND datetime >= %s AND datetime <= %s")
     else:
-        query_string = "SELECT " + field + " FROM level_0 WHERE site_id = %s and node_id = %s " + "AND datetime >= %s AND datetime <= %s"
+        query_string = "SELECT " + field + " FROM level_0 WHERE site_id = %s and node_id = %s " +                       "AND datetime >= %s AND datetime <= %s"
         level0_data_query = (query_string)
 
     # Connect to the ar_data database

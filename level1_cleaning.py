@@ -8,6 +8,8 @@ __author__ = "zeshi"
 
 import numpy as np
 from scipy.linalg import svd
+import scipy
+import math
 from mysqldb_level_0 import query_data_level0, site_info_check
 from level0_2_level1 import query_data_level1
 import mysql.connector
@@ -61,7 +63,7 @@ def snowdepth_baseline_update(WY):
 
 def pd_query(site_name_id, node_id, starting_time, ending_time):
     site_id = site_info_check(site_name_id, node_id)
-    sql_query = "SELECT * FROM level_1 WHERE site_id = " + str(site_id) + " AND node_id = " + str(node_id) + " AND datetime >= '" + starting_time.strftime("%Y-%m-%d %H:%M:%S") + "' AND datetime <= '" + ending_time.strftime("%Y-%m-%d %H:%M:%S") + "'"
+    sql_query = "SELECT * FROM level_1 WHERE site_id = " + str(site_id) + " AND node_id = " + str(node_id) +                      " AND datetime >= '" + starting_time.strftime("%Y-%m-%d %H:%M:%S") + "' AND datetime <= '" +                      ending_time.strftime("%Y-%m-%d %H:%M:%S") + "'"
     cnx = mysql.connector.connect(user = "root", password = "root", database = "ar_data")
     try:
         pd_table = pd.read_sql_query(sql_query, cnx)
@@ -89,7 +91,7 @@ def pd_query_ground_dist(site_name_id, node_id):
 
 # The function will run by node, however, it is better to group 
 
-# In[32]:
+# In[5]:
 
 def level1_cleaning_node_query(site_name_id, node_id, starting_time, ending_time):
     dirty_table = pd_query(site_name_id, node_id, starting_time, ending_time)
@@ -100,7 +102,7 @@ def level1_cleaning_node_query(site_name_id, node_id, starting_time, ending_time
     return (dirty_sd, dirty_temp, dirty_rh)
 
 
-# In[33]:
+# In[6]:
 
 def pca(data, d):
     temp_data = np.copy(data)
@@ -111,7 +113,7 @@ def pca(data, d):
     return U
 
 
-# In[35]:
+# In[7]:
 
 def pca_clean(data_matrix, d):
     temp_data_matrix = np.copy(data_matrix)
@@ -123,7 +125,95 @@ def pca_clean(data_matrix, d):
     return reconstruction
 
 
-# In[42]:
+# In[8]:
+
+def dineof(input_data, n_max = None, max_Iter = 100, rms_inc = 1e-5):
+    data = np.copy(input_data)
+    if n_max is None:
+        n_max = data.shape[1]
+    is_nan = np.isnan(data)
+    not_nan = np.isfinite(data)
+    recon = np.array(pca_clean(data, n_max))
+    rms_prev = float('Inf')
+    rms_now = np.sqrt(np.sum(np.square((recon[not_nan] - data[not_nan]))))
+    data[is_nan] = recon[is_nan]
+    iteration = 1
+    while ((rms_prev - rms_now) > rms_inc) and iteration <= max_Iter:
+        iteration += 1
+        recon = np.array(pca_clean(data, n_max))
+        rms_temp = np.sqrt(np.sum(np.square((recon[not_nan] - data[not_nan]))))
+        if rms_temp < rms_now:
+            rms_prev = np.copy(rms_now)
+            rms_now = np.copy(rms_temp)
+        data[is_nan] = recon[is_nan]
+    return data
+
+
+# In[9]:
+
+class CollaborativeFiltering:
+    def __init__(self, R, r, tol = 1e-2, maxIter = 1000, l = 1e-3, mu = 1e-3):
+        self.R = R
+        self.r = r
+        self.tol = tol
+        self.maxIter = maxIter
+        self.l = l
+        self.mu = mu
+        self.numUser = R.shape[0]
+        self.numItem = R.shape[1]
+        ## u should be number of users * r
+        self.u = np.random.randn(R.shape[0], r) * math.sqrt(10)
+        ## u should be number of r * number of itemss
+        self.v = np.random.randn(r, R.shape[1]) * math.sqrt(10)
+        self.Iter = 0
+        self.loss = float('inf')
+        
+    def train(self):
+        new_u = self.updateU(self.v)
+        new_v = self.updateV(new_u)
+        i = 1.
+        while (np.linalg.norm(self.u - new_u) > self.tol or 
+               np.linalg.norm(self.v - new_v) > self.tol) and self.Iter < self.maxIter:
+            self.l = 0.01/i
+            self.mu = 0.01/i
+            i += 1.
+            self.Iter += 1
+            self.u = new_u
+            self.v = new_v
+            new_u = self.updateU(new_v)
+            new_v = self.updateV(new_u)
+            
+    def calculateLoss(self):
+        self.loss = np.linalg.norm(np.nan_to_num(np.dot(self.u, self.v) - self.R)) +                     self.l * np.linalg.norm(self.u) +                     self.mu * np.linalg.norm(self.v)
+    
+    def updateU(self, v):
+        new_u = np.zeros((self.numUser, self.r))
+        for i in range(self.numUser):
+            ## get the index of non nan v index:
+            v_indexes = np.isfinite(self.R[i, :])
+            v_v_indexes = v[:, v_indexes]
+            R_v_indexes = self.R[i, v_indexes]
+            ## update u[i]
+            u_i = np.linalg.solve(np.dot(v_v_indexes, v_v_indexes.T) + self.l * np.eye(self.r), 
+                                  np.dot(v_v_indexes, R_v_indexes.T)).T
+            new_u[i] = u_i
+        return new_u
+    
+    def updateV(self, u):
+        new_v = np.zeros((self.r, self.numItem))
+        for i in range(self.numItem):
+            ## get the index of non nan v index:
+            u_indexes = np.isfinite(self.R[:, i])
+            u_u_indexes = u[u_indexes, :]
+            R_u_indexes = self.R[u_indexes, i]
+            ## update u[i]
+            v_i = np.linalg.solve(np.dot(u_u_indexes.T, u_u_indexes) + self.mu * np.eye(self.r), 
+                                  np.dot(u_u_indexes.T, R_u_indexes))
+            new_v[:,i] = v_i
+        return new_v
+
+
+# In[10]:
 
 def level1_cleaning_site_pca_clean(site_name_id, site_num_of_nodes, starting_time, ending_time):
     retained_list = []
@@ -172,17 +262,16 @@ def level1_cleaning_site_pca_clean(site_name_id, site_num_of_nodes, starting_tim
     else:
         num_pc = 2
     original_sd = np.copy(sd_matrix)
-    sd_recon = np.array(pca_clean(sd_matrix, num_pc))
+    sd_recon = dineof(sd_matrix, n_max=num_pc)
     sd_matrix[np.isnan(sd_matrix)] = sd_recon[np.isnan(sd_matrix)]
-    temp_recon = np.array(pca_clean(temp_matrix, num_pc))
+    temp_recon = dineof(temp_matrix, n_max=num_pc)
     temp_matrix[np.isnan(temp_matrix)] = temp_recon[np.isnan(temp_matrix)]
-    rh_recon = np.array(pca_clean(rh_matrix, num_pc))
+    rh_recon = dineof(rh_matrix, n_max=num_pc)
     rh_matrix[np.isnan(rh_matrix)] = rh_recon[np.isnan(rh_matrix)]
-#     return (retained_list, sd_matrix, temp_matrix, rh_matrix)
-    return(sd_matrix, original_sd)
+    return (retained_list, sd_matrix, temp_matrix, rh_matrix)
 
 
-# In[37]:
+# In[11]:
 
 def level1_cleaning_site_clean_update(site_id, retained_list, datetime_list, sd_clean, temp_clean, rh_clean):
     update_string = ("UPDATE level_1 SET sd_clean = %s, tmp_clean = %s, rh_clean = %s WHERE site_id = %s " 
@@ -207,7 +296,7 @@ def level1_cleaning_site_clean_update(site_id, retained_list, datetime_list, sd_
 
 # # Cleaning should be done daily!!!
 
-# In[38]:
+# In[12]:
 
 def level1_cleaning_site(site_name_id, starting_time, ending_time):
     if isinstance(site_name_id, str):
@@ -236,18 +325,4 @@ def level1_cleaning_site(site_name_id, starting_time, ending_time):
             temp_datetime += timedelta(minutes=15)
         level1_cleaning_site_clean_update(site_id, retained_list, datetime_list, sd_clean, temp_clean, rh_clean)
     return
-
-
-# In[43]:
-
-# sd, temp, rh = level1_cleaning_node_query("Duncan_Pk", 6, datetime(2016, 1, 25), datetime(2016, 2, 1))
-# print (np.where(~np.isnan(sd)))
-# print(len(np.where(~np.isnan(sd))[0]))
-# a = np.array([1,2,3,np.nan,4,5,101])
-# print(a)
-# a[a>100] = np.nan
-# print(a)
-# print(np.isnan(np.nan))
-# level1_cleaning_site_pca_clean("Duncan_Pk", 11, datetime(2016, 1, 25), datetime(2016, 2, 1))
-# a, b = level1_cleaning_site_pca_clean("Duncan_Pk", 11, datetime(2016, 1, 25), datetime(2016, 1, 26))
 

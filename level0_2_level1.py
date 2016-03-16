@@ -176,7 +176,7 @@ def query_data_level1(site_name_id, node_id, starting_datetime, ending_datetime,
         level1_data_query = ("SELECT * FROM level_1 WHERE site_id = %s AND node_id = %s "
                              "AND datetime >= %s AND datetime <= %s")
     else:
-        query_string = "SELECT " + field + " FROM level_1 WHERE site_id = %s and node_id = %s " + "AND datetime >= %s AND datetime <= %s"
+        query_string = "SELECT " + field + " FROM level_1 WHERE site_id = %s and node_id = %s " +                       "AND datetime >= %s AND datetime <= %s"
         level1_data_query = (query_string)
 
     # Connect to the ar_data database
@@ -272,7 +272,7 @@ def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt = No
     cnx = mysql.connector.connect(user='root', password='root', database='ar_data')
     cursor = cnx.cursor()
     if output == ():
-        print("Level_1 data table updated from level_0 table!")
+        print(site_name, site_id, "Level_1 data table updated from level_0 table!")
         if datetime_range_interupt is None:
             try:
                 if new_server_level_1 is not None:
@@ -282,7 +282,7 @@ def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt = No
                 cnx.commit()
             except mysql.connector.Error as err:
                 print(err)
-                print("Updating time error!")
+                print(site_name, site_id, "Updating time error!")
         cursor.close()
         cnx.close()
         return
@@ -290,10 +290,10 @@ def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt = No
         try:
             cursor.executemany(level1_insert_string, output)
             cnx.commit()
-            print("Level_1 data table updated from level_0 table!")
+            print(site_name, site_id, "Level_1 data table updated from level_0 table!")
         except mysql.connector.Error as err:
             print(err)
-            print("Inserting data into level_1 table failed.")
+            print(site_name, site_id, "Inserting data into level_1 table failed.")
         if datetime_range_interupt is None:
             try:
                 if new_server_level_1 is not None:
@@ -303,7 +303,7 @@ def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt = No
                 cnx.commit()
             except mysql.connector.Error as err:
                 print(err)
-                print("Updating time error!")
+                print(site_name, site_id, "Updating time error!")
         cursor.close()
         cnx.close()
         return
