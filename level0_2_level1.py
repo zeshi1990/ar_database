@@ -7,7 +7,8 @@ from __future__ import print_function
 __author__ = "zeshi"
 
 import numpy as np
-from mysqldb_level_0 import query_data_level0, site_info_check
+import pandas as pd
+from mysqldb_level0 import query_data_level0, site_info_check
 import mysql.connector
 from mysql.connector import errorcode
 from datetime import datetime, date, timedelta
@@ -209,7 +210,73 @@ def query_data_level1(site_name_id, node_id, starting_datetime, ending_datetime,
     return rows
 
 
-# In[15]:
+# In[8]:
+
+def query_data_level0_pd(site_id, node_id, starting_time, ending_time):
+    sql_query = "SELECT * FROM level_0 WHERE site_id = " + str(site_id) + " AND node_id = " + str(node_id) +             " AND datetime >= '" + starting_time.strftime("%Y-%m-%d %H:%M:%S") + "' AND datetime <= '" +             ending_time.strftime("%Y-%m-%d %H:%M:%S") + "'"
+    cnx = mysql.connector.connect(user = "root", password = "root", database = "ar_data")
+    try:
+        pd_table = pd.read_sql_query(sql_query, cnx)
+    except Exception as err:
+        print(err)
+        print("Querying error happens between pandas and mysql when getting level_1 data.")
+    cnx.close()
+    return pd_table
+
+
+# In[9]:
+
+def query_data_level1_pd(site_id, node_id, starting_time, ending_time):
+    sql_query = "SELECT * FROM level_1 WHERE site_id = " + str(site_id) + " AND node_id = " + str(node_id) +                 " AND datetime >= '" + starting_time.strftime("%Y-%m-%d %H:%M:%S") + "' AND datetime <= '" +                 ending_time.strftime("%Y-%m-%d %H:%M:%S") + "'"
+    cnx = mysql.connector.connect(user = "root", password = "root", database = "ar_data")
+    try:
+        pd_table = pd.read_sql_query(sql_query, cnx)
+    except Exception as err:
+        print(err)
+        print("Querying error happens between pandas and mysql when getting level_1 data.")
+    cnx.close()
+    return pd_table
+
+
+# In[10]:
+
+# pd_df = query_data_level0_pd(1, 1, datetime(2014, 10, 1), datetime(2014, 10, 5))
+# temp_df = pd_df.loc[pd_df['datetime']==datetime(2014, 10, 1, 0, 15, 0)]
+# print(len(temp_df))
+# print(pd_df.loc[0, 'sd_card'] == 1)
+# print(temp_df['site_id'] == 0)
+# print(temp_df['sd_card'].as_matrix()[0])
+# col_names = list(temp_df.columns.values)
+# print(col_names)
+# tuple_result = convert_pd_to_tuple(temp_df, col_names)
+# print(tuple_result)
+# print(convert_pd_to_tuple(pd_df.loc[[0]], col_names))
+
+
+# In[11]:
+
+def convert_pd_to_tuple(df_row, col_names):
+    new_row = ()
+    for col_name in col_names:
+        if col_name == 'site_id' or col_name == 'node_id' or col_name == 'sd_card':
+            item = df_row[col_name].as_matrix()[0]
+            if item is not None:
+                item = int(df_row[col_name].as_matrix()[0])
+        elif col_name == 'datetime':
+            item = datetime.utcfromtimestamp(df_row[col_name].as_matrix()[0].astype('O')/1e9)
+        elif col_name == 'unname_1' or col_name == 'unname_2':
+            continue
+        else:
+            item = df_row[col_name].as_matrix()[0]
+            if item is not None and np.isfinite(item):
+                item = float(df_row[col_name].as_matrix()[0])
+            elif item is not None and np.isnan(item):
+                item = None
+        new_row += (item, )
+    return new_row
+
+
+# In[27]:
 
 def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt = None):
     site_id, starting_datetime, ending_datetime = level0_to_level1_time(site_name, node_id) 
@@ -225,12 +292,18 @@ def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt = No
     while temp <= ending_datetime:
         datetime_list.append(temp)
         temp += timedelta(minutes = 15)
+    
     output = ()
+    level0_pd = query_data_level0_pd(site_id, node_id, starting_datetime, ending_datetime)
+    level1_pd = query_data_level1_pd(site_id, node_id, starting_datetime, ending_datetime)
+    col_names = list(level0_pd.columns.values)
+    
     for temp_datetime in datetime_list:
-        level_0_data_temp = query_data_level0(site_id, node_id, temp_datetime, temp_datetime)
+        level_0_data_temp = level0_pd.loc[level0_pd['datetime']==temp_datetime].reset_index(drop=True)
         level_0_data_temp_length = len(level_0_data_temp)
-        level_1_data_temp = query_data_level1(site_id, node_id, temp_datetime, temp_datetime)
+        level_1_data_temp = level1_pd.loc[level1_pd['datetime']==temp_datetime].reset_index(drop=True)
         level_1_data_temp_length = len(level_1_data_temp)
+        
         if level_0_data_temp_length == 0:
             if level_1_data_temp_length == 1:
                 continue
@@ -239,10 +312,12 @@ def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt = No
                                     None, None, None, None, None, None, None, None, None, None), )
         elif level_0_data_temp_length == 1:
             if level_1_data_temp_length == 1:
-                update_data_level1(site_id, node_id, temp_datetime, level_0_data_temp[0])
+                tuple_insert = convert_pd_to_tuple(level_0_data_temp, col_names)
+                update_data_level1(site_id, node_id, temp_datetime, tuple_insert)
             elif level_1_data_temp_length == 0:
-                output = output + (formater(level_0_data_temp[0]), )
-            if level_0_data_temp[0][-1] == 0:
+                tuple_insert = convert_pd_to_tuple(level_0_data_temp, col_names)
+                output = output + (tuple_insert, )
+            if level_0_data_temp['sd_card'].as_matrix()[0] == 0:
                 new_server_level_1 = temp_datetime
             else:
                 new_sd_level_1 = temp_datetime
@@ -250,24 +325,28 @@ def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt = No
             if level_1_data_temp_length == 1:
                 updated = False
                 for i in range(0, level_0_data_temp_length): 
-                    if level_0_data_temp[i][-1] == 1:
-                        update_data_level1(site_id, node_id, temp_datetime, level_0_data_temp[i])
+                    if level_0_data_temp.loc[i, 'sd_card'] == 1:
+                        tuple_insert = convert_pd_to_tuple(level_0_data_temp.iloc[[i]], col_names)
+                        update_data_level1(site_id, node_id, temp_datetime, tuple_insert)
                         updated = True
                         new_sd_level_1 = temp_datetime
                         break
                 if not updated:
-                    update_data_level1(site_id, node_id, temp_datetime, level_0_data_temp[0])
+                    tuple_insert = convert_pd_to_tuple(level_0_data_temp.iloc[[0]], col_names)
+                    update_data_level1(site_id, node_id, temp_datetime, tuple_insert)
                     new_server_level_1 = temp_datetime
             elif level_1_data_temp_length == 0:
                 inserted = False
                 for i in range(0, level_0_data_temp_length): 
-                    if level_0_data_temp[i][-1] == 1:
-                        output = output + (formater(level_0_data_temp[i]), )
+                    if level_0_data_temp.loc[i, 'sd_card'] == 1:
+                        tuple_insert = convert_pd_to_tuple(level_0_data_temp.iloc[[i]], col_names)
+                        output = output + (tuple_insert, )
                         inserted = True
                         new_sd_level_1 = temp_datetime
                         break
                 if not inserted:
-                    output = output + (formater(level_0_data_temp[0]), )
+                    tuple_insert = convert_pd_to_tuple(level_0_data_temp.iloc[[0]], col_names)
+                    output = output + (tuple_insert, )
                     new_server_level_1 = temp_datetime
     cnx = mysql.connector.connect(user='root', password='root', database='ar_data')
     cursor = cnx.cursor()
@@ -309,9 +388,10 @@ def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt = No
         return
 
 
-# In[17]:
+# In[29]:
 
 # Testing cell
 # for i in [1,2,3,4,5,6,7,8,11]:
 #     level0_to_level1_data_merge("Duncan_Pk", i, datetime_range_interupt=(datetime(2016, 1, 25), datetime(2016, 2, 1)))
+# level0_to_level1_data_merge("Alpha", 1, datetime_range_interupt=(datetime(2014, 10, 1), datetime(2014, 10, 7)))
 
