@@ -1,12 +1,17 @@
 
 # coding: utf-8
 
-# In[2]:
+# In[ ]:
 
-import os
+import pexpect
 
-
-# In[3]:
-
-os.system("rsync -avz -e ssh ziran@192.168.1.100:~/AR2014/data /media/raid0/zeshi/AR_db/tmp")
+# Read my password for ssh key
+with open("passphrase.txt") as f:
+    my_pass = f.readline()
+    
+# Rsync everything
+child = pexpect.spawn("rsync -avz -e ssh ziran@192.168.1.100:~/AR2014/data /media/raid0/zeshi/AR_db/tmp")
+child.expect("Enter passphrase for key '/home/zeshi/.ssh/id_rsa':")
+child.sendline(my_pass)
+child.interact()
 
