@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[2]:
+# In[32]:
 
 from __future__ import print_function
 
@@ -13,7 +13,7 @@ from datetime import datetime, date
 import os
 
 
-# In[3]:
+# In[33]:
 
 # This script is for initialize the database.
 def init_db():
@@ -235,7 +235,7 @@ def init_db():
 
 # # The function below should read and parse server data files
 
-# In[4]:
+# In[34]:
 
 def parse_server_file(fn, site_id, node_id, server_last_update):
     # Read the file
@@ -273,7 +273,7 @@ def parse_server_file(fn, site_id, node_id, server_last_update):
                     time_str = line_list[0].split(":")
                     date_str = line_list[1].split("/")
                     line_datetime = datetime(int(date_str[2]), int(date_str[0]), int(date_str[1]),
-                                        int(time_str[0]), int(time_str[1], int(time_str[2])))
+                                        int(time_str[0]), int(time_str[1]), int(time_str[2]))
                 except:
                     continue
                 
@@ -357,7 +357,7 @@ def parse_server_file(fn, site_id, node_id, server_last_update):
 
 # # The function below populate data from the folder having all server data
 
-# In[5]:
+# In[35]:
 
 def populate_data_server(site_name):
     print("Start populating server data into mysql at "+site_name)
@@ -392,7 +392,7 @@ def populate_data_server(site_name):
         
         rows = cursor.fetchall()
         if cursor.rowcount == 0:
-            print("No node found to mac address: " + mac + site_name)
+            print("No node found to mac address: " + mac +" from " + site_name)
             continue
         max_row = rows[0]
         if len(rows) > 1:
@@ -435,7 +435,7 @@ def populate_data_server(site_name):
 
 # # The function below should read and parse the SD card data files
 
-# In[8]:
+# In[43]:
 
 def parse_sd_file(fn, site_id, node_id, sd_last_update):
     # Read the file
@@ -451,7 +451,75 @@ def parse_sd_file(fn, site_id, node_id, sd_last_update):
     for line in reversed(list(f)):
         line_list = line.split(",")
         length_new = len(line_list)
-        # Only use the rows whose length is larger or equal to 10
+        # Only use the rows whose length is larger or equal to 10， except for Owens_Camp
+        if length_new == 9 and site_id == 9:
+            try:
+                time_str = line_list[0].split(":")
+                date_str = line_list[1].split("/")
+                line_datetime = datetime(int(date_str[2]), int(date_str[0]), int(date_str[1]),
+                                         int(time_str[0]), int(time_str[1]), int(time_str[2]))
+            except:
+                continue
+                
+            # If the time stamp is larger than now, continue to the next row of data
+            if line_datetime > datetime.now() or line_datetime < datetime(2013, 1, 1):
+                continue
+            
+            if sd_last_update and line_datetime <= sd_last_update:
+                break
+            
+            # If line_datetime is larger than the last time update the db, record new last update time
+            if (new_sd_last_update is None) or (line_datetime > new_sd_last_update):
+                new_sd_last_update = line_datetime
+
+            temp_line = (site_id, node_id, line_datetime)
+            
+            # Voltage, temperature, relative_humidity, soil moisture temperature ec #12, index 2 - 10
+            for idx in range(2, 5):
+                try:
+                    if float(line_list[idx]) == -99.:
+                        temp_line += (None, )
+                    else:
+                        temp_line += (float(line_list[idx]), )
+                except:
+                    temp_line += (None, )
+            
+            for idx in range(5, 11):
+                temp_line += (None, )
+            
+            # Snow depth
+            try:
+                temp_line += (float(line_list[5]), )
+            except:
+                temp_line += (None, )
+                
+            # Judd temp
+            try:
+                temp_line += (float(line_list[6]), )
+            except:
+                temp_line += (None, )
+                
+            # Unname_1
+            try:
+                temp_line += (float(line_list[7]), )
+            except:
+                temp_line += (None, )
+                
+            # Unname_2
+            try:
+                temp_line += (float(line_list[8]), )
+            except:
+                temp_line += (None, )
+                
+            # Solar radiation
+            temp_line += (None, )
+            # Maxibotics
+            temp_line += (None, )
+            # SD card flag
+            temp_line += (1, )
+            
+            output = (temp_line, ) + output
+            
         if length_new == 15 or length_new == 17:
 
             # Some data starting with the mode of 14, detect them, if they change to 14
@@ -465,7 +533,7 @@ def parse_sd_file(fn, site_id, node_id, sd_last_update):
                 time_str = line_list[0].split(":")
                 date_str = line_list[1].split("/")
                 line_datetime = datetime(int(date_str[2]), int(date_str[0]), int(date_str[1]),
-                                    int(time_str[0]), int(time_str[1], int(time_str[2])))
+                                    int(time_str[0]), int(time_str[1]), int(time_str[2]))
             except:
                 continue
 
@@ -544,7 +612,7 @@ def parse_sd_file(fn, site_id, node_id, sd_last_update):
         return (output, new_sd_last_update)
 
 
-# In[9]:
+# In[44]:
 
 def populate_data_sd(site_name):
     print("Start populating SD card data into mysql at "+site_name)
@@ -610,7 +678,7 @@ def populate_data_sd(site_name):
     cnx.close()
 
 
-# In[10]:
+# In[38]:
 
 def site_info_check(site_name_id, node_id):
     """
@@ -683,7 +751,7 @@ def site_info_check(site_name_id, node_id):
 # field: string. The name of the column name
 # ```
 
-# In[11]:
+# In[39]:
 
 def query_data_level0(site_name_id, node_id, starting_datetime, ending_datetime, field = None):
     """
