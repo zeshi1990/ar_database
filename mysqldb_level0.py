@@ -87,7 +87,7 @@ def init_db():
     cnx.close()
 
     # Popoluate sites into the sites table
-    site_info = pd.read_csv("data/site_node_info.csv", header=0, sep=",")
+    site_info = pd.read_csv("/media/raid0/zeshi/AR_db/server_data/site_node_info.csv", header=0, sep=",")
     site_names = np.unique(site_info["site_id"].as_matrix())
     sites = ()
     for site_name in site_names:
@@ -361,7 +361,7 @@ def parse_server_file(fn, site_id, node_id, server_last_update):
 
 def populate_data_server(site_name):
     print("Start populating server data into mysql at "+site_name)
-    files = os.listdir("server_data/"+site_name)
+    files = os.listdir("/media/raid0/zeshi/AR_db/server_data/"+site_name)
     if ".DS_Store" in files:
         files.remove(".DS_Store")
     node_query = ("SELECT site_id, node_id, put_time, server_last_update FROM motes WHERE mac = %s")
@@ -412,7 +412,7 @@ def populate_data_server(site_name):
         if db_site_name != site_name:
             print("The neomote with mac adress: " + mac + "has been swapped to another site.")
             continue
-        fn = "server_data/" + site_name + "/" + f
+        fn = "/media/raid0/zeshi/AR_db/server_data/" + site_name + "/" + f
         new_items = parse_server_file(fn, site_id, node_id, server_last_update)
         if new_items:
             update_data = new_items[0]
@@ -616,7 +616,7 @@ def parse_sd_file(fn, site_id, node_id, sd_last_update):
 
 def populate_data_sd(site_name):
     print("Start populating SD card data into mysql at "+site_name)
-    files = os.listdir("sd_data/"+site_name) # Need to change the folder name in real application
+    files = os.listdir("/media/raid0/zeshi/AR_db/sd_data/"+site_name) # Need to change the folder name in real application
     if ".DS_Store" in files:
         files.remove(".DS_Store")
     site_id_query = ("SELECT site_id FROM sites WHERE site_name = %s")
@@ -659,7 +659,7 @@ def populate_data_sd(site_name):
         if sd_last_update and (node_visit_time < sd_last_update):
             continue
         
-        fn = "sd_data/" + site_name + "/" + f
+        fn = "/media/raid0/zeshi/AR_db/sd_data/" + site_name + "/" + f
         new_items = parse_sd_file(fn, site_id, node_id, sd_last_update)
         if new_items:
             update_data = new_items[0]
