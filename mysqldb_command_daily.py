@@ -1,10 +1,10 @@
-
+#!/usr/bin/env python
+from __future__ import print_function
 # coding: utf-8
 
 # In[ ]:
 
 __author__ = "zeshi"
-from __future__ import print_function
 
 import os
 import time
