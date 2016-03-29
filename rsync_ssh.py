@@ -17,4 +17,3 @@ try:
 except pexpect.TIMEOUT as timeout:
     print(timeout)
 child.interact()
-

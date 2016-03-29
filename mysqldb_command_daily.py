@@ -16,7 +16,7 @@ from mysql.connector import errorcode
 from mysqldb_level0 import populate_data_server
 from level0_2_level1 import level0_to_level1_data_merge
 
-print(datetime.now())
+print("Running start time is", datetime.now())
 # rsync data from webserver and transfer data from local to local
 try:
     os.system("python /media/raid0/zeshi/AR_db/rsync_ssh.py")
@@ -30,7 +30,6 @@ try:
 except Error as e:
     print(e)
 
-print("Finished transfer data from webserver to compserver!")
 
 # Query site_names from mysql and populate server data into level_0 table
 cnx = mysql.connector.connect(user = "root", password = "root", database = "ar_data")
