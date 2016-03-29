@@ -44,7 +44,7 @@ def folder_name_mapping(src):
 # In[18]:
 
 def transfer_data():
-    src_folder_names = os.listdir("tmp/data")
+    src_folder_names = os.listdir("/media/raid0/zeshi/AR_db/tmp/data")
     for src in src_folder_names:
         dst = folder_name_mapping(src)
         if dst is None:
