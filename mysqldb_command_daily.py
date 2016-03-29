@@ -1,9 +1,10 @@
-#!/usr/bin/env python
-from __future__ import print_function
+
 # coding: utf-8
 
 # In[ ]:
+
 __author__ = "zeshi"
+from __future__ import print_function
 
 import os
 import time
@@ -15,8 +16,8 @@ from mysqldb_level0 import populate_data_server
 from level0_2_level1 import level0_to_level1_data_merge
 
 # rsync data from webserver and transfer data from local to local
-os.system("python rsync_ssh.py")
-os.system("python tmp_to_server_data.py")
+os.system("python /media/raid0/zeshi/AR_db/rsync_ssh.py")
+os.system("python /media/raid0/zeshi/AR_db/tmp_to_server_data.py")
 
 print("Finished transfer data from webserver to compserver!")
 
