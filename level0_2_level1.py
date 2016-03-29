@@ -237,21 +237,6 @@ def query_data_level1_pd(site_id, node_id, starting_time, ending_time):
     return pd_table
 
 
-# In[10]:
-
-# pd_df = query_data_level0_pd(1, 1, datetime(2014, 10, 1), datetime(2014, 10, 5))
-# temp_df = pd_df.loc[pd_df['datetime']==datetime(2014, 10, 1, 0, 15, 0)]
-# print(len(temp_df))
-# print(pd_df.loc[0, 'sd_card'] == 1)
-# print(temp_df['site_id'] == 0)
-# print(temp_df['sd_card'].as_matrix()[0])
-# col_names = list(temp_df.columns.values)
-# print(col_names)
-# tuple_result = convert_pd_to_tuple(temp_df, col_names)
-# print(tuple_result)
-# print(convert_pd_to_tuple(pd_df.loc[[0]], col_names))
-
-
 # In[11]:
 
 def convert_pd_to_tuple(df_row, col_names):
@@ -385,12 +370,4 @@ def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt = No
         cursor.close()
         cnx.close()
         return
-
-
-# In[29]:
-
-# Testing cell
-# for i in [1,2,3,4,5,6,7,8,11]:
-#     level0_to_level1_data_merge("Duncan_Pk", i, datetime_range_interupt=(datetime(2016, 1, 25), datetime(2016, 2, 1)))
-# level0_to_level1_data_merge("Alpha", 1, datetime_range_interupt=(datetime(2014, 10, 1), datetime(2014, 10, 7)))
 

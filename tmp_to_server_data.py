@@ -49,8 +49,8 @@ def transfer_data():
         dst = folder_name_mapping(src)
         if dst is None:
             continue
-        src_dir = "tmp/data/" + src + "/"
-        dst_dir = "server_data/" + dst
+        src_dir = "/media/raid0/zeshi/AR_db/tmp/data/" + src + "/"
+        dst_dir = "/media/raid0/zeshi/AR_db/server_data/" + dst
         print "Sync data from", src_dir, "to", dst_dir
         command = "rsync -avz " + src_dir + " " + dst_dir
         os.system(command)
