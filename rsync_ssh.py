@@ -6,7 +6,7 @@
 import pexpect
 
 # Read my password for ssh key
-with open("passphrase.txt") as f:
+with open("/media/raid0/zeshi/AR_db/passphrase.txt") as f:
     my_pass = f.readline()
     
 # Rsync everything
