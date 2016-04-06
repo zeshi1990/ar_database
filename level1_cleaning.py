@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[13]:
+# In[ ]:
 
 from __future__ import print_function
 __author__ = "zeshi"
@@ -18,7 +18,7 @@ from datetime import datetime, date, timedelta
 import pandas as pd
 
 
-# In[14]:
+# In[ ]:
 
 def init():
     global cnx
@@ -30,7 +30,7 @@ def init():
 # WY: Water year
 # ```
 
-# In[15]:
+# In[ ]:
 
 def snowdepth_baseline_update(WY):
     all_motes_query = ("SELECT site_id, node_id FROM motes")
@@ -66,7 +66,7 @@ def snowdepth_baseline_update(WY):
     cnx.close()
 
 
-# In[16]:
+# In[ ]:
 
 def pd_query(site_name_id, node_id, starting_time, ending_time):
     site_id = site_info_check(site_name_id, node_id)
@@ -79,7 +79,7 @@ def pd_query(site_name_id, node_id, starting_time, ending_time):
     return pd_table
 
 
-# In[17]:
+# In[ ]:
 
 def pd_query_ground_dist(site_name_id, node_id):
     site_id = site_info_check(site_name_id, node_id)
@@ -94,7 +94,7 @@ def pd_query_ground_dist(site_name_id, node_id):
 
 # The function will run by node, however, it is better to group 
 
-# In[18]:
+# In[ ]:
 
 def level1_cleaning_node_query(site_name_id, node_id, starting_time, ending_time):
     dirty_table = pd_query(site_name_id, node_id, starting_time, ending_time)
@@ -105,7 +105,7 @@ def level1_cleaning_node_query(site_name_id, node_id, starting_time, ending_time
     return (dirty_sd, dirty_temp, dirty_rh)
 
 
-# In[19]:
+# In[ ]:
 
 def pca(data, d):
     temp_data = np.copy(data)
@@ -116,19 +116,21 @@ def pca(data, d):
     return U
 
 
-# In[20]:
+# In[ ]:
 
 def pca_clean(data_matrix, d):
     temp_data_matrix = np.copy(data_matrix)
     for i in range(0, temp_data_matrix.shape[1]):
         temp_data_matrix[np.isnan(temp_data_matrix[:, i]), i] = np.nanmean(temp_data_matrix[:, i])
+    for i in range(0, temp_data_matrix.shape[0]):
+        temp_data_matrix[i, np.isnan(temp_data_matrix[i, :])] = np.nanmean(temp_data_matrix[i, :])
     s_mode_U = np.matrix(pca(temp_data_matrix, d))
     t_mode_U = np.matrix(pca(temp_data_matrix.T, d))
     reconstruction = s_mode_U * t_mode_U.T
     return reconstruction
 
 
-# In[21]:
+# In[ ]:
 
 def dineof(input_data, n_max = None, max_Iter = 100, rms_inc = 1e-5):
     data = np.copy(input_data)
@@ -152,7 +154,7 @@ def dineof(input_data, n_max = None, max_Iter = 100, rms_inc = 1e-5):
     return data
 
 
-# In[22]:
+# In[ ]:
 
 class CollaborativeFiltering:
     def __init__(self, R, r, tol = 1e-2, maxIter = 1000, l = 1e-3, mu = 1e-3):
@@ -216,7 +218,7 @@ class CollaborativeFiltering:
         return new_v
 
 
-# In[37]:
+# In[ ]:
 
 def level1_cleaning_site_pca_clean(site_name_id, site_num_of_nodes, starting_time, ending_time):
     retained_list = []
@@ -251,13 +253,10 @@ def level1_cleaning_site_pca_clean(site_name_id, site_num_of_nodes, starting_tim
             continue
         retained_list.append(temp_node_id)
         if sd_matrix is None:
-            print(temp_node_id)
             sd_matrix = temp_dirty_sd
             temp_matrix = temp_dirty_temp
             rh_matrix = temp_dirty_rh
         else:
-            print(temp_node_id)
-            print(len(sd_matrix), len(temp_dirty_sd))
             sd_matrix = np.column_stack((sd_matrix, temp_dirty_sd))
             temp_matrix = np.column_stack((temp_matrix, temp_dirty_temp))
             rh_matrix = np.column_stack((rh_matrix, temp_dirty_rh))
@@ -277,7 +276,7 @@ def level1_cleaning_site_pca_clean(site_name_id, site_num_of_nodes, starting_tim
     return (retained_list, sd_matrix, temp_matrix, rh_matrix)
 
 
-# In[24]:
+# In[ ]:
 
 def level1_cleaning_site_clean_update(site_id, retained_list, datetime_list, sd_clean, temp_clean, rh_clean):
     update_string = ("UPDATE level_1 SET sd_clean = %s, tmp_clean = %s, rh_clean = %s WHERE site_id = %s " 
@@ -300,7 +299,7 @@ def level1_cleaning_site_clean_update(site_id, retained_list, datetime_list, sd_
 
 # # Cleaning should be done daily!!!
 
-# In[41]:
+# In[ ]:
 
 def level1_cleaning_site(site_name_id, starting_time, ending_time):
     init()
