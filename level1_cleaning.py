@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[13]:
 
 from __future__ import print_function
 __author__ = "zeshi"
@@ -18,12 +18,19 @@ from datetime import datetime, date, timedelta
 import pandas as pd
 
 
+# In[14]:
+
+def init():
+    global cnx
+    cnx = mysql.connector.connect(user='root', password='root', database='ar_data')
+
+
 # __This function should be runned every year before the snow season to figure out the baseline of the snow-depth data__
 # ```
 # WY: Water year
 # ```
 
-# In[2]:
+# In[15]:
 
 def snowdepth_baseline_update(WY):
     all_motes_query = ("SELECT site_id, node_id FROM motes")
@@ -59,39 +66,35 @@ def snowdepth_baseline_update(WY):
     cnx.close()
 
 
-# In[3]:
+# In[16]:
 
 def pd_query(site_name_id, node_id, starting_time, ending_time):
     site_id = site_info_check(site_name_id, node_id)
     sql_query = "SELECT * FROM level_1 WHERE site_id = " + str(site_id) + " AND node_id = " + str(node_id) +                      " AND datetime >= '" + starting_time.strftime("%Y-%m-%d %H:%M:%S") + "' AND datetime <= '" +                      ending_time.strftime("%Y-%m-%d %H:%M:%S") + "'"
-    cnx = mysql.connector.connect(user = "root", password = "root", database = "ar_data")
     try:
         pd_table = pd.read_sql_query(sql_query, cnx)
     except Exception as err:
         print(err)
         print("Querying error happens between pandas and mysql when getting level_1 data.")
-    cnx.close()
     return pd_table
 
 
-# In[4]:
+# In[17]:
 
 def pd_query_ground_dist(site_name_id, node_id):
     site_id = site_info_check(site_name_id, node_id)
     sql_query = "SELECT ground_dist FROM motes WHERE site_id = " + str(site_id) + " AND node_id = " + str(node_id)
-    cnx = mysql.connector.connect(user = "root", password = "root", database = "ar_data")
     try:
         ground_dist = pd.read_sql_query(sql_query, cnx)
     except Exception as err:
         print(err)
         print("Queryiing error happens between pandas and mysql when getting ground_dist from TABLE motes.")
-    cnx.close()
     return ground_dist
 
 
 # The function will run by node, however, it is better to group 
 
-# In[5]:
+# In[18]:
 
 def level1_cleaning_node_query(site_name_id, node_id, starting_time, ending_time):
     dirty_table = pd_query(site_name_id, node_id, starting_time, ending_time)
@@ -102,7 +105,7 @@ def level1_cleaning_node_query(site_name_id, node_id, starting_time, ending_time
     return (dirty_sd, dirty_temp, dirty_rh)
 
 
-# In[6]:
+# In[19]:
 
 def pca(data, d):
     temp_data = np.copy(data)
@@ -113,7 +116,7 @@ def pca(data, d):
     return U
 
 
-# In[7]:
+# In[20]:
 
 def pca_clean(data_matrix, d):
     temp_data_matrix = np.copy(data_matrix)
@@ -125,7 +128,7 @@ def pca_clean(data_matrix, d):
     return reconstruction
 
 
-# In[8]:
+# In[21]:
 
 def dineof(input_data, n_max = None, max_Iter = 100, rms_inc = 1e-5):
     data = np.copy(input_data)
@@ -149,7 +152,7 @@ def dineof(input_data, n_max = None, max_Iter = 100, rms_inc = 1e-5):
     return data
 
 
-# In[9]:
+# In[22]:
 
 class CollaborativeFiltering:
     def __init__(self, R, r, tol = 1e-2, maxIter = 1000, l = 1e-3, mu = 1e-3):
@@ -213,7 +216,7 @@ class CollaborativeFiltering:
         return new_v
 
 
-# In[10]:
+# In[37]:
 
 def level1_cleaning_site_pca_clean(site_name_id, site_num_of_nodes, starting_time, ending_time):
     retained_list = []
@@ -248,10 +251,13 @@ def level1_cleaning_site_pca_clean(site_name_id, site_num_of_nodes, starting_tim
             continue
         retained_list.append(temp_node_id)
         if sd_matrix is None:
+            print(temp_node_id)
             sd_matrix = temp_dirty_sd
             temp_matrix = temp_dirty_temp
             rh_matrix = temp_dirty_rh
         else:
+            print(temp_node_id)
+            print(len(sd_matrix), len(temp_dirty_sd))
             sd_matrix = np.column_stack((sd_matrix, temp_dirty_sd))
             temp_matrix = np.column_stack((temp_matrix, temp_dirty_temp))
             rh_matrix = np.column_stack((rh_matrix, temp_dirty_rh))
@@ -271,7 +277,7 @@ def level1_cleaning_site_pca_clean(site_name_id, site_num_of_nodes, starting_tim
     return (retained_list, sd_matrix, temp_matrix, rh_matrix)
 
 
-# In[11]:
+# In[24]:
 
 def level1_cleaning_site_clean_update(site_id, retained_list, datetime_list, sd_clean, temp_clean, rh_clean):
     update_string = ("UPDATE level_1 SET sd_clean = %s, tmp_clean = %s, rh_clean = %s WHERE site_id = %s " 
@@ -281,7 +287,6 @@ def level1_cleaning_site_clean_update(site_id, retained_list, datetime_list, sd_
         for j, temp_datetime in enumerate(datetime_list):
             update_data += ((float(sd_clean[j, i]), float(temp_clean[j, i]), float(rh_clean[j, i]), 
                              int(site_id), int(node_id), temp_datetime),)
-    cnx = mysql.connector.connect(user = "root", password = "root", database = "ar_data")
     cursor = cnx.cursor()
     try:
         cursor.executemany(update_string, update_data)
@@ -290,27 +295,25 @@ def level1_cleaning_site_clean_update(site_id, retained_list, datetime_list, sd_
         print(err)
         print("Problems when updating cleaned data")
     cursor.close()
-    cnx.close()
     return
 
 
 # # Cleaning should be done daily!!!
 
-# In[12]:
+# In[41]:
 
 def level1_cleaning_site(site_name_id, starting_time, ending_time):
+    init()
     if isinstance(site_name_id, str):
         query_string = ("SELECT site_id, num_of_nodes FROM sites WHERE site_name = '" + site_name_id + "'")
         
     else:
         query_string = ("SELECT site_id, num_of_nodes FROM sites WHERE site_id = " + str(site_name_id))
-    cnx = mysql.connector.connect(user = "root", password = "root", database = "ar_data")
     try:
         site_info = pd.read_sql_query(query_string, cnx)
     except Exception as err:
         print(err)
         print("Querying site info error")
-    cnx.close()
     site_id = site_info["site_id"].as_matrix()[0]
     site_num_of_nodes = site_info["num_of_nodes"].as_matrix()[0]
     retained_list, sd_clean, temp_clean, rh_clean = level1_cleaning_site_pca_clean(site_name_id, 
@@ -324,5 +327,6 @@ def level1_cleaning_site(site_name_id, starting_time, ending_time):
             datetime_list.append(temp_datetime)
             temp_datetime += timedelta(minutes=15)
         level1_cleaning_site_clean_update(site_id, retained_list, datetime_list, sd_clean, temp_clean, rh_clean)
+    cnx.close()
     return
 
