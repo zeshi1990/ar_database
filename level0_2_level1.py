@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 from __future__ import print_function
 __author__ = "zeshi"
@@ -31,7 +31,7 @@ level1_sd_time_update = ("UPDATE motes SET sd_level_1 = %s WHERE site_id = %s AN
 level1_server_time_update = ("UPDATE motes SET server_level_1 = %s WHERE site_id = %s AND node_id = %s")
 
 
-# In[2]:
+# In[ ]:
 
 def formater(data_row):
     output = ()
@@ -41,7 +41,7 @@ def formater(data_row):
     return output
 
 
-# In[3]:
+# In[ ]:
 
 def query_site_id(site_name, cursor):
     try:
@@ -56,7 +56,7 @@ def query_site_id(site_name, cursor):
         return None
 
 
-# In[4]:
+# In[ ]:
 
 def query_time(site_id, node_id, time_query_string, cursor):
     try:
@@ -68,7 +68,7 @@ def query_time(site_id, node_id, time_query_string, cursor):
         return (None, None)
 
 
-# In[5]:
+# In[ ]:
 
 def level0_to_level1_time(site_name, node_id, pool_bool=False):
     """
@@ -77,9 +77,9 @@ def level0_to_level1_time(site_name, node_id, pool_bool=False):
     :param node_id:             int, node id
     """
     if pool_bool:
-    	cnx = pool.get_connection()
+        cnx = pool.get_connection()
     else:
-    	cnx = mysql.connector.connect(user='root', password='root', database='ar_data')
+        cnx = mysql.connector.connect(user='root', password='root', database='ar_data')
     cursor = cnx.cursor()
     site_id = query_site_id(site_name, cursor)
     if site_id is None:
@@ -114,7 +114,7 @@ def level0_to_level1_time(site_name, node_id, pool_bool=False):
     return (site_id, starting_datetime, ending_datetime)
 
 
-# In[6]:
+# In[ ]:
 
 def update_data_level1(site_name_id, node_id, row_datetime, new_row, pool_bool=False):
     """
@@ -143,9 +143,9 @@ def update_data_level1(site_name_id, node_id, row_datetime, new_row, pool_bool=F
     for i in range(0, 3):
         exec_data = exec_data + (new_row[i], )
     if pool_bool:
-    	cnx = pool.get_connection()
+        cnx = pool.get_connection()
     else:
-    	cnx = mysql.connector.connect(user='root', password='root', database='ar_data')
+        cnx = mysql.connector.connect(user='root', password='root', database='ar_data')
     cursor = cnx.cursor()
     try:
         cursor.execute(level1_update_query, exec_data)
@@ -157,7 +157,7 @@ def update_data_level1(site_name_id, node_id, row_datetime, new_row, pool_bool=F
     cnx.close()
 
 
-# In[7]:
+# In[ ]:
 
 def query_data_level1(site_name_id, node_id, starting_datetime, ending_datetime, field = None):
     """
@@ -218,14 +218,14 @@ def query_data_level1(site_name_id, node_id, starting_datetime, ending_datetime,
     return rows
 
 
-# In[8]:
+# In[ ]:
 
 def query_data_level0_pd(site_id, node_id, starting_time, ending_time, pool_bool=False):
-    sql_query = "SELECT * FROM level_0 WHERE site_id = " + str(site_id) + " AND node_id = " + str(node_id) +             " AND datetime >= '" + starting_time.strftime("%Y-%m-%d %H:%M:%S") + "' AND datetime <= '" +             ending_time.strftime("%Y-%m-%d %H:%M:%S") + "'"
+    sql_query = "SELECT * FROM level_0 WHERE site_id = " + str(site_id) + " AND node_id = " + str(node_id) +                 " AND datetime >= '" + starting_time.strftime("%Y-%m-%d %H:%M:%S") + "' AND datetime <= '" +                 ending_time.strftime("%Y-%m-%d %H:%M:%S") + "'"
     if pool_bool:
-    	cnx = pool.get_connection()
+        cnx = pool.get_connection()
     else:
-    	cnx = mysql.connector.connect(user = "root", password = "root", database = "ar_data")
+        cnx = mysql.connector.connect(user = "root", password = "root", database = "ar_data")
     try:
         pd_table = pd.read_sql_query(sql_query, cnx)
     except Exception as err:
@@ -235,14 +235,14 @@ def query_data_level0_pd(site_id, node_id, starting_time, ending_time, pool_bool
     return pd_table
 
 
-# In[9]:
+# In[ ]:
 
 def query_data_level1_pd(site_id, node_id, starting_time, ending_time, pool_bool=False):
     sql_query = "SELECT * FROM level_1 WHERE site_id = " + str(site_id) + " AND node_id = " + str(node_id) +                 " AND datetime >= '" + starting_time.strftime("%Y-%m-%d %H:%M:%S") + "' AND datetime <= '" +                 ending_time.strftime("%Y-%m-%d %H:%M:%S") + "'"
     if pool_bool:
-    	cnx = pool.get_connection()
+        cnx = pool.get_connection()
     else:
-    	cnx = mysql.connector.connect(user = "root", password = "root", database = "ar_data")
+        cnx = mysql.connector.connect(user = "root", password = "root", database = "ar_data")
     try:
         pd_table = pd.read_sql_query(sql_query, cnx)
     except Exception as err:
@@ -252,7 +252,7 @@ def query_data_level1_pd(site_id, node_id, starting_time, ending_time, pool_bool
     return pd_table
 
 
-# In[10]:
+# In[ ]:
 
 def convert_pd_to_tuple(df_row, col_names):
     new_row = ()
@@ -275,7 +275,7 @@ def convert_pd_to_tuple(df_row, col_names):
     return new_row
 
 
-# In[11]:
+# In[ ]:
 
 def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt=None):
     site_id, starting_datetime, ending_datetime = level0_to_level1_time(site_name, node_id) 
@@ -288,7 +288,7 @@ def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt=None
     temp = starting_datetime
     new_sd_level_1 = None
     new_server_level_1 = None
-    while temp <= ending_datetime:
+    while temp < ending_datetime:
         datetime_list.append(temp)
         temp += timedelta(minutes = 15)
     
@@ -387,7 +387,7 @@ def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt=None
         return
 
 
-# In[12]:
+# In[ ]:
 
 def level0_to_level1_data_merge_interupt(datetime_range_interupt, site_name="Alpha", node_id=1):
     site_id, starting_datetime, ending_datetime = level0_to_level1_time(site_name, node_id, pool_bool = True) 
@@ -400,7 +400,7 @@ def level0_to_level1_data_merge_interupt(datetime_range_interupt, site_name="Alp
     temp = starting_datetime
     new_sd_level_1 = None
     new_server_level_1 = None
-    while temp <= ending_datetime:
+    while temp < ending_datetime:
         datetime_list.append(temp)
         temp += timedelta(minutes = 15)
     
@@ -499,14 +499,16 @@ def level0_to_level1_data_merge_interupt(datetime_range_interupt, site_name="Alp
         return
 
 
+# In[ ]:
+
 def init():
-	global pool
-	dbconfig = {
-		"database": "ar_data",
-		"user": "root",
-		"password": "root"
-	}
-	pool = MySQLConnectionPool(pool_name = "para_pool", pool_size = 10, **dbconfig)
+    global pool
+    dbconfig = {
+        "database": "ar_data",
+        "user": "root",
+        "password": "root"
+    }
+    pool = MySQLConnectionPool(pool_name = "para_pool", pool_size = 10, **dbconfig)
 
 
 # Used for updating data longer than 1 month
