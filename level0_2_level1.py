@@ -8,11 +8,14 @@ __author__ = "zeshi"
 
 import numpy as np
 import pandas as pd
+import time
 from mysqldb_level0 import query_data_level0, site_info_check
 import mysql.connector
+from mysql.connector.pooling import MySQLConnectionPool
 from mysql.connector import errorcode
 from datetime import datetime, date, timedelta
-
+from multiprocessing import Pool, cpu_count
+from functools import partial
 
 # Define all querie in this database
 site_id_query = ("SELECT site_id, num_of_nodes FROM sites WHERE site_name = %s")
@@ -67,13 +70,16 @@ def query_time(site_id, node_id, time_query_string, cursor):
 
 # In[5]:
 
-def level0_to_level1_time(site_name, node_id):
+def level0_to_level1_time(site_name, node_id, pool_bool=False):
     """
     This function return the maximum time range to update the level1 table from level0 table
     :param: site_name:          string, site name
     :param node_id:             int, node id
     """
-    cnx = mysql.connector.connect(user='root', password='root', database='ar_data')
+    if pool_bool:
+    	cnx = pool.get_connection()
+    else:
+    	cnx = mysql.connector.connect(user='root', password='root', database='ar_data')
     cursor = cnx.cursor()
     site_id = query_site_id(site_name, cursor)
     if site_id is None:
@@ -108,9 +114,9 @@ def level0_to_level1_time(site_name, node_id):
     return (site_id, starting_datetime, ending_datetime)
 
 
-# In[30]:
+# In[6]:
 
-def update_data_level1(site_name_id, node_id, row_datetime, new_row):
+def update_data_level1(site_name_id, node_id, row_datetime, new_row, pool_bool=False):
     """
     Update level1 data from mysql database
     :param site_name_id:        int or string, The site name or site id of the data
@@ -136,7 +142,10 @@ def update_data_level1(site_name_id, node_id, row_datetime, new_row):
         exec_data = exec_data + (new_row[i], )
     for i in range(0, 3):
         exec_data = exec_data + (new_row[i], )
-    cnx = mysql.connector.connect(user='root', password='root', database='ar_data')
+    if pool_bool:
+    	cnx = pool.get_connection()
+    else:
+    	cnx = mysql.connector.connect(user='root', password='root', database='ar_data')
     cursor = cnx.cursor()
     try:
         cursor.execute(level1_update_query, exec_data)
@@ -211,9 +220,12 @@ def query_data_level1(site_name_id, node_id, starting_datetime, ending_datetime,
 
 # In[8]:
 
-def query_data_level0_pd(site_id, node_id, starting_time, ending_time):
+def query_data_level0_pd(site_id, node_id, starting_time, ending_time, pool_bool=False):
     sql_query = "SELECT * FROM level_0 WHERE site_id = " + str(site_id) + " AND node_id = " + str(node_id) +             " AND datetime >= '" + starting_time.strftime("%Y-%m-%d %H:%M:%S") + "' AND datetime <= '" +             ending_time.strftime("%Y-%m-%d %H:%M:%S") + "'"
-    cnx = mysql.connector.connect(user = "root", password = "root", database = "ar_data")
+    if pool_bool:
+    	cnx = pool.get_connection()
+    else:
+    	cnx = mysql.connector.connect(user = "root", password = "root", database = "ar_data")
     try:
         pd_table = pd.read_sql_query(sql_query, cnx)
     except Exception as err:
@@ -225,9 +237,12 @@ def query_data_level0_pd(site_id, node_id, starting_time, ending_time):
 
 # In[9]:
 
-def query_data_level1_pd(site_id, node_id, starting_time, ending_time):
+def query_data_level1_pd(site_id, node_id, starting_time, ending_time, pool_bool=False):
     sql_query = "SELECT * FROM level_1 WHERE site_id = " + str(site_id) + " AND node_id = " + str(node_id) +                 " AND datetime >= '" + starting_time.strftime("%Y-%m-%d %H:%M:%S") + "' AND datetime <= '" +                 ending_time.strftime("%Y-%m-%d %H:%M:%S") + "'"
-    cnx = mysql.connector.connect(user = "root", password = "root", database = "ar_data")
+    if pool_bool:
+    	cnx = pool.get_connection()
+    else:
+    	cnx = mysql.connector.connect(user = "root", password = "root", database = "ar_data")
     try:
         pd_table = pd.read_sql_query(sql_query, cnx)
     except Exception as err:
@@ -237,7 +252,7 @@ def query_data_level1_pd(site_id, node_id, starting_time, ending_time):
     return pd_table
 
 
-# In[11]:
+# In[10]:
 
 def convert_pd_to_tuple(df_row, col_names):
     new_row = ()
@@ -260,9 +275,9 @@ def convert_pd_to_tuple(df_row, col_names):
     return new_row
 
 
-# In[31]:
+# In[11]:
 
-def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt = None):
+def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt=None):
     site_id, starting_datetime, ending_datetime = level0_to_level1_time(site_name, node_id) 
     if site_id is None and starting_datetime is None and ending_datetime is None:
         return
@@ -371,3 +386,141 @@ def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt = No
         cnx.close()
         return
 
+
+# In[12]:
+
+def level0_to_level1_data_merge_interupt(datetime_range_interupt, site_name="Alpha", node_id=1):
+    site_id, starting_datetime, ending_datetime = level0_to_level1_time(site_name, node_id, pool_bool = True) 
+    if site_id is None and starting_datetime is None and ending_datetime is None:
+        return
+    if datetime_range_interupt is not None:
+        starting_datetime = datetime_range_interupt[0]
+        ending_datetime = datetime_range_interupt[1]
+    datetime_list = []
+    temp = starting_datetime
+    new_sd_level_1 = None
+    new_server_level_1 = None
+    while temp <= ending_datetime:
+        datetime_list.append(temp)
+        temp += timedelta(minutes = 15)
+    
+    output = ()
+    level0_pd = query_data_level0_pd(site_id, node_id, starting_datetime, ending_datetime, pool_bool = True)
+    level1_pd = query_data_level1_pd(site_id, node_id, starting_datetime, ending_datetime, pool_bool = True)
+    col_names = list(level0_pd.columns.values)
+    
+    for temp_datetime in datetime_list:
+        level_0_data_temp = level0_pd.loc[level0_pd['datetime']==temp_datetime].reset_index(drop=True)
+        level_0_data_temp_length = len(level_0_data_temp)
+        level_1_data_temp = level1_pd.loc[level1_pd['datetime']==temp_datetime].reset_index(drop=True)
+        level_1_data_temp_length = len(level_1_data_temp)
+        
+        if level_0_data_temp_length == 0:
+            if level_1_data_temp_length == 1:
+                continue
+            elif level_1_data_temp_length == 0:
+                output = output + ((site_id, node_id, temp_datetime, None, None, None, None, 
+                                    None, None, None, None, None, None, None, None, None, None), )
+        elif level_0_data_temp_length == 1:
+            if level_1_data_temp_length == 1:
+                tuple_insert = convert_pd_to_tuple(level_0_data_temp, col_names)
+                update_data_level1(site_id, node_id, temp_datetime, tuple_insert, pool_bool = True)
+            elif level_1_data_temp_length == 0:
+                tuple_insert = convert_pd_to_tuple(level_0_data_temp, col_names)
+                output = output + (tuple_insert, )
+            if level_0_data_temp['sd_card'].as_matrix()[0] == 0:
+                new_server_level_1 = temp_datetime
+            else:
+                new_sd_level_1 = temp_datetime
+        elif level_0_data_temp_length >= 2:
+            if level_1_data_temp_length == 1:
+                updated = False
+                for i in range(0, level_0_data_temp_length): 
+                    if level_0_data_temp.loc[i, 'sd_card'] == 1:
+                        tuple_insert = convert_pd_to_tuple(level_0_data_temp.iloc[[i]], col_names)
+                        update_data_level1(site_id, node_id, temp_datetime, tuple_insert, pool_bool = True)
+                        updated = True
+                        new_sd_level_1 = temp_datetime
+                        break
+                if not updated:
+                    tuple_insert = convert_pd_to_tuple(level_0_data_temp.iloc[[0]], col_names)
+                    update_data_level1(site_id, node_id, temp_datetime, tuple_insert, pool_bool = True)
+                    new_server_level_1 = temp_datetime
+            elif level_1_data_temp_length == 0:
+                inserted = False
+                for i in range(0, level_0_data_temp_length): 
+                    if level_0_data_temp.loc[i, 'sd_card'] == 1:
+                        tuple_insert = convert_pd_to_tuple(level_0_data_temp.iloc[[i]], col_names)
+                        output = output + (tuple_insert, )
+                        inserted = True
+                        new_sd_level_1 = temp_datetime
+                        break
+                if not inserted:
+                    tuple_insert = convert_pd_to_tuple(level_0_data_temp.iloc[[0]], col_names)
+                    output = output + (tuple_insert, )
+                    new_server_level_1 = temp_datetime
+    cnx = pool.get_connection()
+    cursor = cnx.cursor()
+    if output == ():
+        print(site_name, node_id, "Level_1 data table updated from level_0 table!")
+        if datetime_range_interupt is None:
+            try:
+                if new_server_level_1 is not None:
+                    cursor.execute(level1_server_time_update, (new_server_level_1, site_id, node_id))
+                if new_sd_level_1 is not None:
+                    cursor.execute(level1_sd_time_update, (new_sd_level_1, site_id, node_id))
+                cnx.commit()
+            except mysql.connector.Error as err:
+                print(err)
+                print(site_name, node_id, "Updating time error!")
+        cursor.close()
+        cnx.close()
+        return
+    else:
+        try:
+            cursor.executemany(level1_insert_string, output)
+            cnx.commit()
+            print(site_name, node_id, "Level_1 data table updated from level_0 table!")
+        except mysql.connector.Error as err:
+            print(err)
+            print(site_name, node_id, "Inserting data into level_1 table failed.")
+        if datetime_range_interupt is None:
+            try:
+                if new_server_level_1 is not None:
+                    cursor.execute(level1_server_time_update, (new_server_level_1, site_id, node_id))
+                if new_sd_level_1 is not None:
+                    cursor.execute(level1_sd_time_update, (new_sd_level_1, site_id, node_id))
+                cnx.commit()
+            except mysql.connector.Error as err:
+                print(err)
+                print(site_name, node_id, "Updating time error!")
+        cursor.close()
+        cnx.close()
+        return
+
+
+def init():
+	global pool
+	dbconfig = {
+		"database": "ar_data",
+		"user": "root",
+		"password": "root"
+	}
+	pool = MySQLConnectionPool(pool_name = "para_pool", pool_size = 10, **dbconfig)
+
+
+# Used for updating data longer than 1 month
+def level0_to_level1_longterm(site_name, node_id, datetime_range):
+    starting_datetime = datetime_range[0]
+    ending_datetime = datetime_range[1]
+    datetime_range_list = []
+    while starting_datetime < ending_datetime:
+        datetime_range_list.append((starting_datetime, starting_datetime + timedelta(days=7)))
+        starting_datetime += timedelta(days=7)
+    partial_level0_to_level1_merger = partial(level0_to_level1_data_merge_interupt, 
+                                              site_name=site_name, 
+                                              node_id=node_id)
+    pool = Pool(processes=7, initializer=init)
+    pool.map(partial_level0_to_level1_merger, datetime_range_list)
+    pool.close()
+    pool.join()

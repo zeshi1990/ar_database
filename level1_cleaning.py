@@ -10,7 +10,7 @@ import numpy as np
 from scipy.linalg import svd
 import scipy
 import math
-from mysqldb_level_0 import query_data_level0, site_info_check
+from mysqldb_level0 import query_data_level0, site_info_check
 from level0_2_level1 import query_data_level1
 import mysql.connector
 from mysql.connector import errorcode
