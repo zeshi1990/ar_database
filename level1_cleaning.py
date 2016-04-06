@@ -20,9 +20,12 @@ import pandas as pd
 
 # In[ ]:
 
-def init():
+def init(cnx_given):
     global cnx
-    cnx = mysql.connector.connect(user='root', password='root', database='ar_data')
+    if pool_given is None:
+        cnx = mysql.connector.connect(user='root', password='root', database='ar_data')
+    else:
+        cnx = cnx_given
 
 
 # __This function should be runned every year before the snow season to figure out the baseline of the snow-depth data__
@@ -301,8 +304,8 @@ def level1_cleaning_site_clean_update(site_id, retained_list, datetime_list, sd_
 
 # In[ ]:
 
-def level1_cleaning_site(site_name_id, starting_time, ending_time):
-    init()
+def level1_cleaning_site(site_name_id, starting_time, ending_time, cnx_given=None):
+    init(cnx_given)
     if isinstance(site_name_id, str):
         query_string = ("SELECT site_id, num_of_nodes FROM sites WHERE site_name = '" + site_name_id + "'")
         
@@ -326,6 +329,7 @@ def level1_cleaning_site(site_name_id, starting_time, ending_time):
             datetime_list.append(temp_datetime)
             temp_datetime += timedelta(minutes=15)
         level1_cleaning_site_clean_update(site_id, retained_list, datetime_list, sd_clean, temp_clean, rh_clean)
-    cnx.close()
+    if cnx_given is None:
+        cnx.close()
     return
 

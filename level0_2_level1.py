@@ -522,7 +522,7 @@ def level0_to_level1_longterm(site_name, node_id, datetime_range):
     partial_level0_to_level1_merger = partial(level0_to_level1_data_merge_interupt, 
                                               site_name=site_name, 
                                               node_id=node_id)
-    pool = Pool(processes=7, initializer=init)
-    pool.map(partial_level0_to_level1_merger, datetime_range_list)
-    pool.close()
-    pool.join()
+    pool_worker = Pool(processes=7, initializer=init)
+    pool_worker.map(partial_level0_to_level1_merger, datetime_range_list)
+    pool_worker.close()
+    pool_worker.join()
