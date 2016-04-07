@@ -1,5 +1,10 @@
-#!/usr/bin/env python
+
 # coding: utf-8
+
+# In[ ]:
+
+#!/usr/bin/env python
+
 
 # In[ ]:
 
@@ -151,6 +156,7 @@ def datetime_to_string(datetime_datetime):
 # In[ ]:
 
 def weekly_avg_std_by_site(site_table, clean=False):
+    now = datetime.now()
     week_start_time = datetime.now() - timedelta(days=7)
     year = week_start_time.year
     month = week_start_time.month
@@ -175,7 +181,7 @@ def weekly_avg_std_by_site(site_table, clean=False):
     plt.xlabel("Site name, sorted by elevation")
     plt.ylabel("Snow depth, cm")
     plt.grid()
-    fn = "/media/raid0/zeshi/AR_db/figures/avg_" + str(year)+str(month).zfill(2)+str(day).zfill(2)+".pdf"
+    fn = "/media/raid0/zeshi/AR_db/figures/avg_" + str(now.year)+str(now.month).zfill(2)+str(now.day).zfill(2)+".pdf"
     plt.savefig(fn)
 
 
@@ -243,7 +249,7 @@ def ts_wyd_by_site(site_table, clean = False):
         axarr[i].grid()
     plt.xlabel("Time")
     fig.text(0.06, 0.5, 'Snowdepth, cm', ha='center', va='center', rotation='vertical')
-    fn = "/media/raid0/zeshi/AR_db/figures/ts_" + str(year)+str(month).zfill(2)+str(day).zfill(2)+".pdf"
+    fn = "/media/raid0/zeshi/AR_db/figures/ts_" + str(now.year)+str(now.month).zfill(2)+str(now.day).zfill(2)+".pdf"
     plt.savefig(fn)
 
 
