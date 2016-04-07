@@ -8,28 +8,19 @@ __author__ = "zeshi"
 
 import os
 import time
-import pexpect
 from datetime import datetime, timedelta
 from multiprocessing import Pool, cpu_count
 import mysql.connector
 from mysql.connector import errorcode
 from mysqldb_level0 import populate_data_server
 from level0_2_level1 import level0_to_level1_data_merge
+from level1_cleaning import level1_cleaning_site
 
-print("Running start time is", datetime.now())
 # rsync data from webserver and transfer data from local to local
-try:
-    os.system("python /media/raid0/zeshi/AR_db/rsync_ssh.py")
-    print("Rsync succeeded from the webserver!")
-except pexpect.TIMEOUT as timeout:
-    print(timeout)
+os.system("python /media/raid0/zeshi/AR_db/rsync_ssh.py")
+os.system("python /media/raid0/zeshi/AR_db/tmp_to_server_data.py")
 
-try:
-    os.system("python /media/raid0/zeshi/AR_db/tmp_to_server_data.py")
-    print("Rsync succeeded from the tmp folder to dst folder")
-except Error as e:
-    print(e)
-
+print("Finished transfer data from webserver to compserver!")
 
 # Query site_names from mysql and populate server data into level_0 table
 cnx = mysql.connector.connect(user = "root", password = "root", database = "ar_data")
@@ -79,6 +70,12 @@ pool = Pool(processes=cpu_count())
 pool.map(merge0_to_1_parallel, sites_infos)
 pool.close()
 pool.join()
+
+# Clean level_1 data
+starting_time = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)
+ending_time = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
+for site_id in range(1, 14):
+    level1_cleaning_site(site_id, starting_time, ending_time)
 
 
 # In[ ]:
