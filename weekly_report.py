@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
@@ -175,7 +175,8 @@ def weekly_avg_std_by_site(site_table, clean=False):
     plt.xlabel("Site name, sorted by elevation")
     plt.ylabel("Snow depth, cm")
     plt.grid()
-    plt.savefig("week_example.pdf")
+    fn = "/media/raid0/zeshi/AR_db/figures/avg_" + str(year)+str(month).zfill(2)+str(day).zfill(2)+".pdf"
+    plt.savefig(fn)
 
 
 # In[ ]:
@@ -242,7 +243,8 @@ def ts_wyd_by_site(site_table, clean = False):
         axarr[i].grid()
     plt.xlabel("Time")
     fig.text(0.06, 0.5, 'Snowdepth, cm', ha='center', va='center', rotation='vertical')
-    plt.savefig("week_ts_example.pdf")
+    fn = "/media/raid0/zeshi/AR_db/figures/ts_" + str(year)+str(month).zfill(2)+str(day).zfill(2)+".pdf"
+    plt.savefig(fn)
 
 
 # In[ ]:
