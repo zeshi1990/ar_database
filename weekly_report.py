@@ -151,7 +151,11 @@ def datetime_to_string(datetime_datetime):
 # In[ ]:
 
 def weekly_avg_std_by_site(site_table, clean=False):
-    week_start_time = datetime(2016, 3, 22)
+    week_start_time = datetime.now() - timedelta(days=7)
+    year = week_start_time.year
+    month = week_start_time.month
+    day = week_start_time.day
+    week_start_time = datetime(year, month, day)
     valid_motes = node_info_query_by_site(site_table, week_start_time)
     if clean:
         clean_snowdepth(site_table, week_start_time)
