@@ -22,7 +22,7 @@ import pandas as pd
 
 def init(cnx_given):
     global cnx
-    if pool_given is None:
+    if cnx_given is None:
         cnx = mysql.connector.connect(user='root', password='root', database='ar_data')
     else:
         cnx = cnx_given
@@ -54,6 +54,7 @@ def snowdepth_baseline_update(WY):
         mote_ground_distance = query_data_level1(mote[0], mote[1], min_datetime, max_datetime, field='snowdepth')
         mote_ground_distance = np.array([i[0] for i in mote_ground_distance])
         mote_ground_distance = mote_ground_distance[mote_ground_distance >= 2000.]
+        mote_ground_distance = mote_ground_distance[mote_ground_distance <= 5000.]
         ground_distance = np.nanmean(mote_ground_distance)
         if mote_ground_distance.size == 0:
             ground_distance = None
@@ -64,7 +65,28 @@ def snowdepth_baseline_update(WY):
             except mysql.connector.Error as err:
                 print(err)
             print("site_id:" + str(mote[0]) + " node_id:" + str(mote[1]) + " baseline update complete!")
+        else:
+            try:
+                cursor.execute(baseline_update, (None, mote[0], mote[1]))
+            except mysql.connector.Error as err:
+                print(err)
+            print("site_id:" + str(mote[0]) + " node_id:" + str(mote[1]) + " baseline is updated to NULL!")
     cnx.commit()
+    cursor.close()
+    cnx.close()
+
+
+# In[ ]:
+
+def find_duplicate():
+    cnx = mysql.connector.connect(user="root", password="root", database="ar_data")
+    cursor = cnx.cursor()
+    for site_id in range(1, 14):
+        for node_id in range(1, 12):
+            query = "SELECT count(datetime) c FROM level_1 WHERE site_id = " + str(site_id) + " AND node_id = " +                     str(node_id) + " GROUP BY datetime HAVING c > 1"
+            cursor.execute(query)
+            result = cursor.fetchall()
+            print(site_id, node_id, result)
     cursor.close()
     cnx.close()
 
@@ -73,7 +95,7 @@ def snowdepth_baseline_update(WY):
 
 def pd_query(site_name_id, node_id, starting_time, ending_time):
     site_id = site_info_check(site_name_id, node_id)
-    sql_query = "SELECT * FROM level_1 WHERE site_id = " + str(site_id) + " AND node_id = " + str(node_id) +                      " AND datetime >= '" + starting_time.strftime("%Y-%m-%d %H:%M:%S") + "' AND datetime <= '" +                      ending_time.strftime("%Y-%m-%d %H:%M:%S") + "'"
+    sql_query = "SELECT * FROM level_1 WHERE site_id = " + str(site_id) + " AND node_id = " + str(node_id) +                      " AND datetime >= '" + starting_time.strftime("%Y-%m-%d %H:%M:%S") + "' AND datetime <= '" +                      ending_time.strftime("%Y-%m-%d %H:%M:%S") + "' ORDER BY datetime"
     try:
         pd_table = pd.read_sql_query(sql_query, cnx)
     except Exception as err:
@@ -253,6 +275,8 @@ def level1_cleaning_site_pca_clean(site_name_id, site_num_of_nodes, starting_tim
                     last_not_nan_idx = i
         temp_data_not_nan = len(np.where(~np.isnan(temp_dirty_sd))[0])
         if temp_data_not_nan < 0.5 * float(temp_data_length) or temp_data_length == 0:
+            continue
+        if len(temp_dirty_sd) != ((ending_time - starting_time).days * 60 * 24 / 15 + 1):
             continue
         retained_list.append(temp_node_id)
         if sd_matrix is None:

@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 from __future__ import print_function
 __author__ = "zeshi"
@@ -31,7 +31,7 @@ level1_sd_time_update = ("UPDATE motes SET sd_level_1 = %s WHERE site_id = %s AN
 level1_server_time_update = ("UPDATE motes SET server_level_1 = %s WHERE site_id = %s AND node_id = %s")
 
 
-# In[ ]:
+# In[2]:
 
 def formater(data_row):
     output = ()
@@ -41,7 +41,7 @@ def formater(data_row):
     return output
 
 
-# In[ ]:
+# In[3]:
 
 def query_site_id(site_name, cursor):
     try:
@@ -56,7 +56,7 @@ def query_site_id(site_name, cursor):
         return None
 
 
-# In[ ]:
+# In[4]:
 
 def query_time(site_id, node_id, time_query_string, cursor):
     try:
@@ -68,7 +68,7 @@ def query_time(site_id, node_id, time_query_string, cursor):
         return (None, None)
 
 
-# In[ ]:
+# In[5]:
 
 def level0_to_level1_time(site_name, node_id, pool_bool=False):
     """
@@ -114,7 +114,7 @@ def level0_to_level1_time(site_name, node_id, pool_bool=False):
     return (site_id, starting_datetime, ending_datetime)
 
 
-# In[ ]:
+# In[6]:
 
 def update_data_level1(site_name_id, node_id, row_datetime, new_row, pool_bool=False):
     """
@@ -157,7 +157,7 @@ def update_data_level1(site_name_id, node_id, row_datetime, new_row, pool_bool=F
     cnx.close()
 
 
-# In[ ]:
+# In[7]:
 
 def query_data_level1(site_name_id, node_id, starting_datetime, ending_datetime, field = None):
     """
@@ -218,7 +218,7 @@ def query_data_level1(site_name_id, node_id, starting_datetime, ending_datetime,
     return rows
 
 
-# In[ ]:
+# In[8]:
 
 def query_data_level0_pd(site_id, node_id, starting_time, ending_time, pool_bool=False):
     sql_query = "SELECT * FROM level_0 WHERE site_id = " + str(site_id) + " AND node_id = " + str(node_id) +                 " AND datetime >= '" + starting_time.strftime("%Y-%m-%d %H:%M:%S") + "' AND datetime <= '" +                 ending_time.strftime("%Y-%m-%d %H:%M:%S") + "'"
@@ -235,7 +235,7 @@ def query_data_level0_pd(site_id, node_id, starting_time, ending_time, pool_bool
     return pd_table
 
 
-# In[ ]:
+# In[9]:
 
 def query_data_level1_pd(site_id, node_id, starting_time, ending_time, pool_bool=False):
     sql_query = "SELECT * FROM level_1 WHERE site_id = " + str(site_id) + " AND node_id = " + str(node_id) +                 " AND datetime >= '" + starting_time.strftime("%Y-%m-%d %H:%M:%S") + "' AND datetime <= '" +                 ending_time.strftime("%Y-%m-%d %H:%M:%S") + "'"
@@ -252,7 +252,7 @@ def query_data_level1_pd(site_id, node_id, starting_time, ending_time, pool_bool
     return pd_table
 
 
-# In[ ]:
+# In[10]:
 
 def convert_pd_to_tuple(df_row, col_names):
     new_row = ()
@@ -275,7 +275,7 @@ def convert_pd_to_tuple(df_row, col_names):
     return new_row
 
 
-# In[ ]:
+# In[11]:
 
 def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt=None):
     site_id, starting_datetime, ending_datetime = level0_to_level1_time(site_name, node_id) 
@@ -387,7 +387,7 @@ def level0_to_level1_data_merge(site_name, node_id, datetime_range_interupt=None
         return
 
 
-# In[ ]:
+# In[12]:
 
 def level0_to_level1_data_merge_interupt(datetime_range_interupt, site_name="Alpha", node_id=1):
     site_id, starting_datetime, ending_datetime = level0_to_level1_time(site_name, node_id, pool_bool = True) 
@@ -499,7 +499,7 @@ def level0_to_level1_data_merge_interupt(datetime_range_interupt, site_name="Alp
         return
 
 
-# In[ ]:
+# In[13]:
 
 def init():
     global pool
@@ -526,3 +526,4 @@ def level0_to_level1_longterm(site_name, node_id, datetime_range):
     pool_worker.map(partial_level0_to_level1_merger, datetime_range_list)
     pool_worker.close()
     pool_worker.join()
+
