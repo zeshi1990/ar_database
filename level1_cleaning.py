@@ -95,7 +95,7 @@ def find_duplicate():
 
 def pd_query(site_name_id, node_id, starting_time, ending_time):
     site_id = site_info_check(site_name_id, node_id)
-    sql_query = "SELECT * FROM level_1 WHERE site_id = " + str(site_id) + " AND node_id = " + str(node_id) +                      " AND datetime >= '" + starting_time.strftime("%Y-%m-%d %H:%M:%S") + "' AND datetime <= '" +                      ending_time.strftime("%Y-%m-%d %H:%M:%S") + "' ORDER BY datetime"
+    sql_query = "SELECT * FROM level_1 WHERE site_id = " + str(site_id) + " AND node_id = " + str(node_id) +                      " AND datetime >= '" + starting_time.strftime("%Y-%m-%d %H:%M:%S") + "' AND datetime < '" +                      ending_time.strftime("%Y-%m-%d %H:%M:%S") + "' ORDER BY datetime"
     try:
         pd_table = pd.read_sql_query(sql_query, cnx)
     except Exception as err:
@@ -276,7 +276,7 @@ def level1_cleaning_site_pca_clean(site_name_id, site_num_of_nodes, starting_tim
         temp_data_not_nan = len(np.where(~np.isnan(temp_dirty_sd))[0])
         if temp_data_not_nan < 0.5 * float(temp_data_length) or temp_data_length == 0:
             continue
-        if len(temp_dirty_sd) != ((ending_time - starting_time).days * 60 * 24 / 15 + 1):
+        if len(temp_dirty_sd) != ((ending_time - starting_time).days * 60 * 24 / 15):
             continue
         retained_list.append(temp_node_id)
         if sd_matrix is None:
@@ -349,7 +349,7 @@ def level1_cleaning_site(site_name_id, starting_time, ending_time, cnx_given=Non
     if retained_list is not None:
         datetime_list = []
         temp_datetime = starting_time
-        while temp_datetime <= ending_time:
+        while temp_datetime < ending_time:
             datetime_list.append(temp_datetime)
             temp_datetime += timedelta(minutes=15)
         level1_cleaning_site_clean_update(site_id, retained_list, datetime_list, sd_clean, temp_clean, rh_clean)

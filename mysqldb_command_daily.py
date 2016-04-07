@@ -16,6 +16,7 @@ from mysqldb_level0 import populate_data_server
 from level0_2_level1 import level0_to_level1_data_merge
 from level1_cleaning import level1_cleaning_site
 
+print("Running start time is", datetime.now())
 # rsync data from webserver and transfer data from local to local
 os.system("python /media/raid0/zeshi/AR_db/rsync_ssh.py")
 os.system("python /media/raid0/zeshi/AR_db/tmp_to_server_data.py")
@@ -75,7 +76,8 @@ pool.join()
 starting_time = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)
 ending_time = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
 for site_id in range(1, 14):
-    level1_cleaning_site(site_id, starting_time, ending_time)
+	level1_cleaning_site(site_id, starting_time, ending_time)
+	print("Finished cleaning data from site", site_id)
 
 
 # In[ ]:
