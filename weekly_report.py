@@ -13,8 +13,9 @@ from mysql.connector import errorcode
 from mysql.connector.pooling import MySQLConnectionPool
 from datetime import datetime, timedelta
 import numpy as np
-from matplotlib import pyplot as plt
 import matplotlib as mpl
+mpl.use('Agg')
+from matplotlib import pyplot as plt
 from level1_cleaning import level1_cleaning_site
 
 mpl.rc("font", family="Helvetica")
@@ -171,7 +172,7 @@ def weekly_avg_std_by_site(site_table, clean=False):
     x = np.array(range(1, len(site_sd_info)+1))
     sd = site_sd_info[:, 2] / 10.
     sd_std = site_sd_info[:, 3] / 10.
-    plt.figure(figsize=(12, 8))
+    fig = plt.figure(figsize=(12, 8))
     plt.xticks(x, site_name)
     plt.errorbar(x, sd, yerr=sd_std, fmt='o')
     plt.xlim([0, len(site_name)+1])
@@ -253,13 +254,12 @@ def ts_wyd_by_site(site_table, clean = False):
 # In[ ]:
 
 def week_report():
-    site_table = init()
-    weekly_avg_std_by_site(site_table)
-    ts_wyd_by_site(site_table)
-    cnx.close()
+	site_table = init()
+	weekly_avg_std_by_site(site_table)
+	ts_wyd_by_site(site_table)
+	cnx.close()
 
 
 # In[ ]:
-
+print datetime.now()
 week_report()
-
