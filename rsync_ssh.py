@@ -5,6 +5,8 @@
 
 import pexpect
 
+print("Start sync data from webserver to compserver")
+
 # Read my password for ssh key
 with open("/media/raid0/zeshi/AR_db/passphrase.txt") as f:
     my_pass = f.readline()
