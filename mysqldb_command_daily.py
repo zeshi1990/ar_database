@@ -18,10 +18,9 @@ from level1_cleaning import level1_cleaning_site
 
 print("Running start time is", datetime.now())
 # rsync data from webserver and transfer data from local to local
-os.system("python /media/raid0/zeshi/AR_db/rsync_ssh.py")
 os.system("python /media/raid0/zeshi/AR_db/tmp_to_server_data.py")
 
-print("Finished transfer data from webserver to compserver!")
+print("Finished transfer data from tmp to server_data!")
 
 # Query site_names from mysql and populate server data into level_0 table
 cnx = mysql.connector.connect(user = "root", password = "root", database = "ar_data")
