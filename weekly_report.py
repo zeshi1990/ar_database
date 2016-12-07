@@ -41,7 +41,7 @@ def init_pool():
         "user": "root",
         "password": "root"
     }
-    pool = MySQLConnectionPool(pool_name = "para_pool", pool_size = 10, **dbconfig)
+    pool = MySQLConnectionPool(pool_name = "para_pool", pool_size = 9, **dbconfig)
 
 
 # # Define week start datetime, this needs to be automated after this report
@@ -112,7 +112,7 @@ def clean_snowdepth(site_table, start_time, ending_time = None):
         clean_snowdepth_para_partial = partial(clean_snowdepth_para, 
                                                days=days, 
                                                start_time=start_time)
-        pool_worker = Pool(processes=8, initializer=init_pool)
+        pool_worker = Pool(processes=7, initializer=init_pool)
         pool_worker.map(clean_snowdepth_para_partial, all_sites_id)
         pool_worker.close()
         pool_worker.join()
@@ -232,7 +232,7 @@ def ts_wyd_by_site(site_table, clean = False):
     for i, site_id in enumerate(unique_sites_id):
         site_motes = valid_motes[valid_motes[:, 0] == site_id]
         site_sd_clean, site_datetime = ts_query_by_site(site_motes, ts_start_time_str, ts_stop_time_str)
-        site_name = site_table.site_name[site_id-1]
+        site_name = site_table.loc[site_table['site_id']==site_id, 'site_name'].as_matrix()[0]
         if site_sd_clean is None:
             continue
         ts_sd_avg = np.nanmean(site_sd_clean, axis=1)
@@ -261,5 +261,6 @@ def week_report():
 
 
 # In[ ]:
-print datetime.now()
-week_report()
+if __name__ == "__main__":
+    print datetime.now()
+    week_report()

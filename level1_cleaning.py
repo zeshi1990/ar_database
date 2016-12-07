@@ -274,7 +274,7 @@ def level1_cleaning_site_pca_clean(site_name_id, site_num_of_nodes, starting_tim
                     last_not_nan = temp_dirty_sd[i]
                     last_not_nan_idx = i
         temp_data_not_nan = len(np.where(~np.isnan(temp_dirty_sd))[0])
-        if temp_data_not_nan < 0.5 * float(temp_data_length) or temp_data_length == 0:
+        if temp_data_not_nan < 0.1 * float(temp_data_length) or temp_data_length == 0:
             continue
         if len(temp_dirty_sd) != ((ending_time - starting_time).days * 60 * 24 / 15):
             continue

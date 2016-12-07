@@ -477,7 +477,7 @@ def parse_sd_file(fn, site_id, node_id, sd_last_update):
             # Voltage, temperature, relative_humidity, soil moisture temperature ec #12, index 2 - 10
             for idx in range(2, 5):
                 try:
-                    if float(line_list[idx]) == -99.:
+                    if float(line_list[idx]) == -99. or line_list[idx] == 'inf':
                         temp_line += (None, )
                     else:
                         temp_line += (float(line_list[idx]), )
@@ -554,7 +554,7 @@ def parse_sd_file(fn, site_id, node_id, sd_last_update):
             # Voltage, temperature, relative_humidity, soil moisture temperature ec #12, index 2 - 10
             for idx in range(2, 11):
                 try:
-                    if float(line_list[idx]) == -99.:
+                    if float(line_list[idx]) == -99. or line_list[idx] == 'inf':
                         temp_line += (None, )
                     else:
                         temp_line += (float(line_list[idx]), )
@@ -669,6 +669,7 @@ def populate_data_sd(site_name):
                 cursor.execute(update_table_motes, (new_sd_last_update, site_id, node_id))
                 cursor.executemany(insert_table_level_0, update_data)
                 cnx.commit()
+                print("Finished populating data from "+fn)
             except mysql.connector.Error as err:
                 print("Error happens when inserting data!")
                 print(temp_temp)

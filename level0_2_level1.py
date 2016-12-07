@@ -508,7 +508,7 @@ def init():
         "user": "root",
         "password": "root"
     }
-    pool = MySQLConnectionPool(pool_name = "para_pool", pool_size = 10, **dbconfig)
+    pool = MySQLConnectionPool(pool_name = "para_pool", pool_size = 9, **dbconfig)
 
 
 # Used for updating data longer than 1 month
